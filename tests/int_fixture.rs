@@ -4,8 +4,8 @@
 use std::collections::BTreeSet;
 use std::fs;
 
-use earcut::int::{deviation as int_deviation, EarcutI32};
-use earcut::{deviation as float_deviation, Earcut};
+use earcut::int::{EarcutI32, deviation as int_deviation};
+use earcut::{Earcut, deviation as float_deviation};
 
 type Coords = Vec<Vec<[f64; 2]>>;
 

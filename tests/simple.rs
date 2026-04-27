@@ -1,4 +1,4 @@
-use earcut::{deviation, Earcut};
+use earcut::{Earcut, deviation};
 
 #[test]
 fn test_default() {
@@ -178,7 +178,9 @@ fn test_square_with_square_hole() {
     earcut.earcut(data.iter().copied(), hole_indices, &mut triangles);
     assert_eq!(
         triangles,
-        vec![0, 4, 7, 5, 4, 0, 3, 0, 7, 5, 0, 1, 2, 3, 7, 6, 5, 1, 2, 7, 6, 6, 1, 2]
+        vec![
+            0, 4, 7, 5, 4, 0, 3, 0, 7, 5, 0, 1, 2, 3, 7, 6, 5, 1, 2, 7, 6, 6, 1, 2
+        ]
     );
     assert_eq!(
         deviation(data.iter().copied(), hole_indices, &triangles),

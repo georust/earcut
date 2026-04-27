@@ -1,5 +1,5 @@
 use earcut::int::EarcutI32;
-use earcut::{deviation, Earcut};
+use earcut::{Earcut, deviation};
 
 use std::fs;
 

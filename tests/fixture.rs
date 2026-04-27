@@ -1,12 +1,9 @@
-use earcut::{deviation, Earcut};
+use earcut::{Earcut, deviation};
 
-use std::fs;
-
-fn test_fixture(name: &str, num_triangles: usize, expected_deviation: f64) {
+fn test_fixture(coords: &str, num_triangles: usize, expected_deviation: f64) {
     // load JSON
     type Coords = Vec<Vec<[f64; 2]>>;
-    let s = fs::read_to_string("./tests/fixtures/".to_string() + name + ".json").unwrap();
-    let expected = serde_json::from_str::<Coords>(&s).unwrap();
+    let expected = serde_json::from_str::<Coords>(coords).unwrap();
 
     // prepare input
     let num_holes = expected.len();
@@ -27,8 +24,9 @@ fn test_fixture(name: &str, num_triangles: usize, expected_deviation: f64) {
     earcut.earcut(data.iter().copied(), &hole_indices, &mut triangles);
 
     // check
-    assert!(
-        triangles.len() == num_triangles * 3,
+    assert_eq!(
+        triangles.len(),
+        num_triangles * 3,
         "{} {}",
         triangles.len(),
         num_triangles * 3
@@ -40,260 +38,260 @@ fn test_fixture(name: &str, num_triangles: usize, expected_deviation: f64) {
 
 #[test]
 fn fixture_building() {
-    test_fixture("building", 13, 0.0);
+    test_fixture(include_str!("fixtures/building.json"), 13, 0.0);
 }
 
 #[test]
 fn fixture_dude() {
-    test_fixture("dude", 106, 2e-15);
+    test_fixture(include_str!("fixtures/dude.json"), 106, 2e-15);
 }
 
 #[test]
 fn fixture_water1() {
-    test_fixture("water", 2482, 0.0008);
+    test_fixture(include_str!("fixtures/water.json"), 2482, 0.0008);
 }
 
 #[test]
 fn fixture_water2() {
-    test_fixture("water2", 1212, 0.0);
+    test_fixture(include_str!("fixtures/water2.json"), 1212, 0.0);
 }
 
 #[test]
 fn fixture_water3() {
-    test_fixture("water3", 197, 0.0);
+    test_fixture(include_str!("fixtures/water3.json"), 197, 0.0);
 }
 
 #[test]
 fn fixture_water3b() {
-    test_fixture("water3b", 25, 0.0);
+    test_fixture(include_str!("fixtures/water3b.json"), 25, 0.0);
 }
 
 #[test]
 fn fixture_water4() {
-    test_fixture("water4", 705, 0.0);
+    test_fixture(include_str!("fixtures/water4.json"), 705, 0.0);
 }
 
 #[test]
 fn fixture_water_huge1() {
-    test_fixture("water-huge", 5176, 0.0011);
+    test_fixture(include_str!("fixtures/water-huge.json"), 5176, 0.0011);
 }
 
 #[test]
 fn fixture_water_huge2() {
-    test_fixture("water-huge2", 4462, 0.004);
+    test_fixture(include_str!("fixtures/water-huge2.json"), 4462, 0.004);
 }
 
 #[test]
 fn fixture_degenerate() {
-    test_fixture("degenerate", 0, 0.0);
+    test_fixture(include_str!("fixtures/degenerate.json"), 0, 0.0);
 }
 
 #[test]
 fn fixture_bad_hole() {
-    test_fixture("bad-hole", 42, 0.019);
+    test_fixture(include_str!("fixtures/bad-hole.json"), 42, 0.019);
 }
 
 #[test]
 fn fixture_empty_square() {
-    test_fixture("empty-square", 0, 0.0);
+    test_fixture(include_str!("fixtures/empty-square.json"), 0, 0.0);
 }
 
 #[test]
 fn fixture_issue16() {
-    test_fixture("issue16", 12, 4e-16);
+    test_fixture(include_str!("fixtures/issue16.json"), 12, 4e-16);
 }
 
 #[test]
 fn fixture_issue17() {
-    test_fixture("issue17", 11, 2e-16);
+    test_fixture(include_str!("fixtures/issue17.json"), 11, 2e-16);
 }
 
 #[test]
 fn fixture_steiner() {
-    test_fixture("steiner", 9, 0.0);
+    test_fixture(include_str!("fixtures/steiner.json"), 9, 0.0);
 }
 
 #[test]
 fn fixture_issue29() {
-    test_fixture("issue29", 40, 2e-15);
+    test_fixture(include_str!("fixtures/issue29.json"), 40, 2e-15);
 }
 
 #[test]
 fn fixture_issue34() {
-    test_fixture("issue34", 139, 0.0);
+    test_fixture(include_str!("fixtures/issue34.json"), 139, 0.0);
 }
 
 #[test]
 fn fixture_issue35() {
-    test_fixture("issue35", 844, 0.0);
+    test_fixture(include_str!("fixtures/issue35.json"), 844, 0.0);
 }
 
 #[test]
 fn fixture_self_touching() {
-    test_fixture("self-touching", 124, 2e-13);
+    test_fixture(include_str!("fixtures/self-touching.json"), 124, 2e-13);
 }
 
 #[test]
 fn fixture_outside_ring() {
-    test_fixture("outside-ring", 64, 0.0);
+    test_fixture(include_str!("fixtures/outside-ring.json"), 64, 0.0);
 }
 
 #[test]
 fn fixture_simplified_us_border() {
-    test_fixture("simplified-us-border", 120, 0.0);
+    test_fixture(include_str!("fixtures/simplified-us-border.json"), 120, 0.0);
 }
 
 #[test]
 fn fixture_touching_holes() {
-    test_fixture("touching-holes", 57, 0.0);
+    test_fixture(include_str!("fixtures/touching-holes.json"), 57, 0.0);
 }
 
 #[test]
 fn fixture_touching_holes2() {
-    test_fixture("touching-holes2", 10, 0.0);
+    test_fixture(include_str!("fixtures/touching-holes2.json"), 10, 0.0);
 }
 
 #[test]
 fn fixture_touching_holes3() {
-    test_fixture("touching-holes3", 82, 0.0);
+    test_fixture(include_str!("fixtures/touching-holes3.json"), 82, 0.0);
 }
 
 #[test]
 fn fixture_touching_holes4() {
-    test_fixture("touching-holes4", 55, 0.0);
+    test_fixture(include_str!("fixtures/touching-holes4.json"), 55, 0.0);
 }
 
 #[test]
 fn fixture_touching_holes5() {
-    test_fixture("touching-holes5", 133, 0.0);
+    test_fixture(include_str!("fixtures/touching-holes5.json"), 133, 0.0);
 }
 
 #[test]
 fn fixture_touching_holes6() {
-    test_fixture("touching-holes6", 3098, 0.0);
+    test_fixture(include_str!("fixtures/touching-holes6.json"), 3098, 0.0);
 }
 
 #[test]
 fn fixture_hole_touching_outer() {
-    test_fixture("hole-touching-outer", 77, 0.0);
+    test_fixture(include_str!("fixtures/hole-touching-outer.json"), 77, 0.0);
 }
 
 #[test]
 fn fixture_hilbert() {
-    test_fixture("hilbert", 1024, 0.0);
+    test_fixture(include_str!("fixtures/hilbert.json"), 1024, 0.0);
 }
 
 #[test]
 fn fixture_issue45() {
-    test_fixture("issue45", 10, 0.0);
+    test_fixture(include_str!("fixtures/issue45.json"), 10, 0.0);
 }
 
 #[test]
 fn fixture_eberly_3() {
-    test_fixture("eberly-3", 73, 0.0);
+    test_fixture(include_str!("fixtures/eberly-3.json"), 73, 0.0);
 }
 
 #[test]
 fn fixture_eberly_6() {
-    test_fixture("eberly-6", 1429, 2e-14);
+    test_fixture(include_str!("fixtures/eberly-6.json"), 1429, 2e-14);
 }
 
 #[test]
 fn fixture_issue52() {
-    test_fixture("issue52", 109, 0.0);
+    test_fixture(include_str!("fixtures/issue52.json"), 109, 0.0);
 }
 
 #[test]
 fn fixture_shared_points() {
-    test_fixture("shared-points", 4, 0.0);
+    test_fixture(include_str!("fixtures/shared-points.json"), 4, 0.0);
 }
 
 #[test]
 fn fixture_bad_diagonals() {
-    test_fixture("bad-diagonals", 7, 0.0);
+    test_fixture(include_str!("fixtures/bad-diagonals.json"), 7, 0.0);
 }
 
 #[test]
 fn fixture_issue83() {
-    test_fixture("issue83", 0, 0.0);
+    test_fixture(include_str!("fixtures/issue83.json"), 0, 0.0);
 }
 
 #[test]
 fn fixture_issue107() {
-    test_fixture("issue107", 0, 0.0);
+    test_fixture(include_str!("fixtures/issue107.json"), 0, 0.0);
 }
 
 #[test]
 fn fixture_issue111() {
-    test_fixture("issue111", 18, 0.0);
+    test_fixture(include_str!("fixtures/issue111.json"), 18, 0.0);
 }
 
 #[test]
 fn fixture_collinear_boxy() {
-    test_fixture("boxy", 58, 0.0);
+    test_fixture(include_str!("fixtures/boxy.json"), 58, 0.0);
 }
 
 #[test]
 fn fixture_collinear_diagonal() {
-    test_fixture("collinear-diagonal", 14, 0.0);
+    test_fixture(include_str!("fixtures/collinear-diagonal.json"), 14, 0.0);
 }
 
 #[test]
 fn fixture_issue119() {
-    test_fixture("issue119", 18, 0.0);
+    test_fixture(include_str!("fixtures/issue119.json"), 18, 0.0);
 }
 
 #[test]
 fn fixture_hourglass() {
-    test_fixture("hourglass", 2, 0.0);
+    test_fixture(include_str!("fixtures/hourglass.json"), 2, 0.0);
 }
 
 #[test]
 fn fixture_touching2() {
-    test_fixture("touching2", 8, 0.0);
+    test_fixture(include_str!("fixtures/touching2.json"), 8, 0.0);
 }
 
 #[test]
 fn fixture_touching3() {
-    test_fixture("touching3", 15, 0.0);
+    test_fixture(include_str!("fixtures/touching3.json"), 15, 0.0);
 }
 
 #[test]
 fn fixture_touching4() {
-    test_fixture("touching4", 19, 0.0);
+    test_fixture(include_str!("fixtures/touching4.json"), 19, 0.0);
 }
 
 #[test]
 fn fixture_rain() {
-    test_fixture("rain", 2681, 0.0);
+    test_fixture(include_str!("fixtures/rain.json"), 2681, 0.0);
 }
 
 #[test]
 fn fixture_issue131() {
-    test_fixture("issue131", 12, 0.0);
+    test_fixture(include_str!("fixtures/issue131.json"), 12, 0.0);
 }
 
 #[test]
 fn fixture_infinite_loop_jhl() {
-    test_fixture("infinite-loop-jhl", 0, 0.0);
+    test_fixture(include_str!("fixtures/infinite-loop-jhl.json"), 0, 0.0);
 }
 
 #[test]
 fn fixture_filtered_bridge_jhl() {
-    test_fixture("filtered-bridge-jhl", 25, 0.0);
+    test_fixture(include_str!("fixtures/filtered-bridge-jhl.json"), 25, 0.0);
 }
 
 #[test]
 fn fixture_issue149() {
-    test_fixture("issue149", 2, 0.0);
+    test_fixture(include_str!("fixtures/issue149.json"), 2, 0.0);
 }
 
 #[test]
 fn fixture_issue142() {
-    test_fixture("issue142", 4, 0.13);
+    test_fixture(include_str!("fixtures/issue142.json"), 4, 0.13);
 }
 
 #[test]
 fn fixture_issue186() {
-    test_fixture("issue186", 41, 0.0);
+    test_fixture(include_str!("fixtures/issue186.json"), 41, 0.0);
 }
