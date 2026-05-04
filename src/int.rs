@@ -86,10 +86,10 @@ pub fn deviation<N: Index>(
         true => hole_indices[0].into_usize(),
         false => data.len(),
     };
-    let polygon_area = if data.len() < 3 {
+    let polygon_area = if data.len() < 3 || outer_len < 3 {
         0
     } else {
-        let mut polygon_area = signed_area(&data, 0, outer_len).abs();
+        let mut polygon_area = signed_area(&data[..outer_len]).abs();
         if has_holes {
             for i in 0..hole_indices.len() {
                 let start = hole_indices[i].into_usize();
@@ -99,7 +99,7 @@ pub fn deviation<N: Index>(
                     data.len()
                 };
                 if end - start >= 3 {
-                    polygon_area -= signed_area(&data, start, end).abs();
+                    polygon_area -= signed_area(&data[start..end]).abs();
                 }
             }
         }
@@ -128,11 +128,12 @@ pub fn deviation<N: Index>(
 }
 
 /// signed area of a polygon ring (twice the geometric area)
-fn signed_area(data: &[[i32; 2]], start: usize, end: usize) -> i64 {
-    assert!(end > 0 && start <= end && end <= data.len());
-    let [mut bx, mut by] = [data[end - 1][0] as i64, data[end - 1][1] as i64];
+fn signed_area(data: &[[i32; 2]]) -> i64 {
+    debug_assert!(!data.is_empty());
+    let [last_x, last_y] = data[data.len() - 1];
+    let [mut bx, mut by] = [last_x as i64, last_y as i64];
     let mut sum = 0;
-    for &[ax_r, ay_r] in &data[start..end] {
+    for &[ax_r, ay_r] in data {
         let ax = ax_r as i64;
         let ay = ay_r as i64;
         sum += (bx - ax) * (ay + by);
@@ -261,13 +262,14 @@ fn earcut_linked<N: Index>(
     min_y: i32,
     shift: u32,
     small_path: bool,
+    sort_queue: &mut Vec<(i32, NodeOffset)>,
     pass: Pass,
 ) {
     let mut ear_i = ear_i;
 
     // interlink polygon nodes in z-order
     if pass == Pass::P0 && shift != NO_HASH {
-        index_curve(nodes, ear_i, min_x, min_y, shift);
+        index_curve(nodes, ear_i, min_x, min_y, shift, sort_queue);
     }
 
     let mut stop_i = ear_i;
@@ -315,6 +317,7 @@ fn earcut_linked<N: Index>(
                     min_y,
                     shift,
                     small_path,
+                    sort_queue,
                     Pass::P1,
                 );
             } else if pass == Pass::P1 {
@@ -328,10 +331,13 @@ fn earcut_linked<N: Index>(
                     min_y,
                     shift,
                     small_path,
+                    sort_queue,
                     Pass::P2,
                 );
-            } else if pass == Pass::P2 {
-                split_earcut(nodes, ear_i, triangles, min_x, min_y, shift, small_path);
+            } else {
+                split_earcut(
+                    nodes, ear_i, triangles, min_x, min_y, shift, small_path, sort_queue,
+                );
             }
             return;
         }
@@ -443,6 +449,9 @@ fn is_ear_hashed<'a>(
     let max_z = z_order(xy_max, min_x, min_y, shift);
 
     // look for points inside the triangle in increasing z-order
+    //
+    // Unlike the float version, we keep the bbox prefilter: the i32 comparisons are
+    // cheaper than i64 multiplications.
     let mut o_n = ear.next_z_i.map(|i| node!(nodes, i));
     while let Some(n) = o_n {
         if n.z > max_z {
@@ -526,6 +535,7 @@ fn cure_local_intersections<N: Index>(
 }
 
 /// try splitting polygon into two and triangulate them independently
+#[allow(clippy::too_many_arguments)]
 fn split_earcut<N: Index>(
     nodes: &mut Vec<Node>,
     start_i: NodeOffset,
@@ -534,6 +544,7 @@ fn split_earcut<N: Index>(
     min_y: i32,
     shift: u32,
     small_path: bool,
+    sort_queue: &mut Vec<(i32, NodeOffset)>,
 ) {
     // look for a valid diagonal that divides the polygon into two
     let mut ai = start_i;
@@ -541,11 +552,12 @@ fn split_earcut<N: Index>(
     loop {
         let a_next = node!(nodes, a.next_i);
         let a_prev = node!(nodes, a.prev_i);
+        let a_index = a.index();
         let mut bi = a_next.next_i;
 
         while bi != a.prev_i {
             let b = node!(nodes, bi);
-            if a.index() != b.index() && is_valid_diagonal(nodes, a, b, a_next, a_prev) {
+            if a_index != b.index() && is_valid_diagonal(nodes, a, b, a_next, a_prev) {
                 // split the polygon in two by the diagonal
                 let mut ci = split_polygon(nodes, ai, bi);
 
@@ -564,6 +576,7 @@ fn split_earcut<N: Index>(
                     min_y,
                     shift,
                     small_path,
+                    sort_queue,
                     Pass::P0,
                 );
                 earcut_linked(
@@ -574,6 +587,7 @@ fn split_earcut<N: Index>(
                     min_y,
                     shift,
                     small_path,
+                    sort_queue,
                     Pass::P0,
                 );
                 return;
@@ -590,7 +604,15 @@ fn split_earcut<N: Index>(
 }
 
 /// interlink polygon nodes in z-order
-fn index_curve(nodes: &mut [Node], start_i: NodeOffset, min_x: i32, min_y: i32, shift: u32) {
+fn index_curve(
+    nodes: &mut [Node],
+    start_i: NodeOffset,
+    min_x: i32,
+    min_y: i32,
+    shift: u32,
+    order: &mut Vec<(i32, NodeOffset)>,
+) {
+    order.clear();
     let mut p_i = start_i;
     let mut p = node_mut!(nodes, p_i);
 
@@ -598,8 +620,7 @@ fn index_curve(nodes: &mut [Node], start_i: NodeOffset, min_x: i32, min_y: i32, 
         if p.z == 0 {
             p.z = z_order(p.xy, min_x, min_y, shift);
         }
-        p.prev_z_i = Some(p.prev_i);
-        p.next_z_i = Some(p.next_i);
+        order.push((p.z, p_i));
         p_i = p.next_i;
         p = node_mut!(nodes, p_i);
         if p_i == start_i {
@@ -607,99 +628,18 @@ fn index_curve(nodes: &mut [Node], start_i: NodeOffset, min_x: i32, min_y: i32, 
         }
     }
 
-    let p_prev_z_i = p.prev_z_i.take().unwrap();
-    node_mut!(nodes, p_prev_z_i).next_z_i = None;
-    sort_linked(nodes, p_i);
-}
+    order.sort_unstable_by_key(|&(z, _)| z);
 
-/// Simon Tatham's linked list merge sort algorithm
-/// http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
-fn sort_linked(nodes: &mut [Node], list_i: NodeOffset) {
-    let mut in_size: u32 = 1;
-    let mut list_i = Some(list_i);
-
-    loop {
-        let mut p_i = list_i;
-        list_i = None;
-        let mut tail_i: Option<NodeOffset> = None;
-        let mut num_merges = 0;
-
-        while let Some(p_i_s) = p_i {
-            num_merges += 1;
-            let mut q_i = node!(nodes, p_i_s).next_z_i;
-            let mut p_size: u32 = 1;
-            for _ in 1..in_size {
-                if let Some(i) = q_i {
-                    p_size += 1;
-                    q_i = node!(nodes, i).next_z_i;
-                } else {
-                    break;
-                }
-            }
-            let mut q_size = in_size;
-
-            loop {
-                let e_i = if p_size > 0 {
-                    let Some(p_i_s) = p_i else { break };
-                    if q_size > 0 {
-                        if let Some(q_i_s) = q_i {
-                            if node!(nodes, p_i_s).z <= node!(nodes, q_i_s).z {
-                                p_size -= 1;
-                                let e = node_mut!(nodes, p_i_s);
-                                e.prev_z_i = tail_i;
-                                p_i = e.next_z_i;
-                                p_i_s
-                            } else {
-                                q_size -= 1;
-                                let e = node_mut!(nodes, q_i_s);
-                                e.prev_z_i = tail_i;
-                                q_i = e.next_z_i;
-                                q_i_s
-                            }
-                        } else {
-                            p_size -= 1;
-                            let e = node_mut!(nodes, p_i_s);
-                            e.prev_z_i = tail_i;
-                            p_i = e.next_z_i;
-                            p_i_s
-                        }
-                    } else {
-                        p_size -= 1;
-                        let e = node_mut!(nodes, p_i_s);
-                        e.prev_z_i = tail_i;
-                        p_i = e.next_z_i;
-                        p_i_s
-                    }
-                } else if q_size > 0 {
-                    if let Some(q_i_s) = q_i {
-                        q_size -= 1;
-                        let e = node_mut!(nodes, q_i_s);
-                        e.prev_z_i = tail_i;
-                        q_i = e.next_z_i;
-                        q_i_s
-                    } else {
-                        break;
-                    }
-                } else {
-                    break;
-                };
-
-                if let Some(tail_i) = tail_i {
-                    node_mut!(nodes, tail_i).next_z_i = Some(e_i);
-                } else {
-                    list_i = Some(e_i);
-                }
-                tail_i = Some(e_i);
-            }
-
-            p_i = q_i;
-        }
-
-        node_mut!(nodes, tail_i.unwrap()).next_z_i = None;
-        if num_merges <= 1 {
-            break;
-        }
-        in_size *= 2;
+    for idx in 0..order.len() {
+        let prev_z_i = if idx > 0 {
+            Some(order[idx - 1].1)
+        } else {
+            None
+        };
+        let next_z_i = order.get(idx + 1).map(|&(_, i)| i);
+        let p = node_mut!(nodes, order[idx].1);
+        p.prev_z_i = prev_z_i;
+        p.next_z_i = next_z_i;
     }
 }
 
@@ -755,12 +695,24 @@ fn intersects(p1: &Node, q1: &Node, p2: &Node, q2: &Node) -> bool {
 fn intersects_polygon(nodes: &[Node], a: &Node, b: &Node) -> bool {
     let ai = a.index();
     let bi = b.index();
+    let x0 = a.xy[0].min(b.xy[0]);
+    let y0 = a.xy[1].min(b.xy[1]);
+    let x1 = a.xy[0].max(b.xy[0]);
+    let y1 = a.xy[1].max(b.xy[1]);
     let mut p = a;
     loop {
         let p_next = node!(nodes, p.next_i);
         let pi = p.index();
         let pni = p_next.index();
+        let px0 = p.xy[0].min(p_next.xy[0]);
+        let py0 = p.xy[1].min(p_next.xy[1]);
+        let px1 = p.xy[0].max(p_next.xy[0]);
+        let py1 = p.xy[1].max(p_next.xy[1]);
         if (((pi != ai) && (pi != bi)) && ((pni != ai) && (pni != bi)))
+            && px0 <= x1
+            && px1 >= x0
+            && py0 <= y1
+            && py1 >= y0
             && intersects(p, p_next, a, b)
         {
             return true;
@@ -901,28 +853,15 @@ fn find_hole_bridge(nodes: &[Node], hole: &Node, outer_node_i: NodeOffset) -> Op
 
     let qx_t = qx as i32;
 
+    let (tri_a, tri_c) = if hole.xy[1] < mxmy[1] {
+        ([hole.xy[0], hole.xy[1]], [qx_t, hole.xy[1]])
+    } else {
+        ([qx_t, hole.xy[1]], [hole.xy[0], hole.xy[1]])
+    };
+
     loop {
         if (((hole.xy[0] >= p.xy[0]) & (p.xy[0] >= mxmy[0])) && hole.xy[0] != p.xy[0])
-            && point_in_triangle(
-                [
-                    if hole.xy[1] < mxmy[1] {
-                        hole.xy[0]
-                    } else {
-                        qx_t
-                    },
-                    hole.xy[1],
-                ],
-                mxmy,
-                [
-                    if hole.xy[1] < mxmy[1] {
-                        qx_t
-                    } else {
-                        hole.xy[0]
-                    },
-                    hole.xy[1],
-                ],
-                p.xy,
-            )
+            && point_in_triangle(tri_a, mxmy, tri_c, p.xy)
         {
             // tan = |hole.y - p.y| / (hole.x - p.x),  denom > 0 here.
             // Compare via cross-product so we never have to divide:
@@ -1060,10 +999,9 @@ fn remove_node(nodes: &mut [Node], pl: LinkInfo) -> (NodeOffset, NodeOffset) {
 }
 
 #[inline]
-fn input_bbox(data: &[[i32; 2]], start: usize, end: usize) -> InputBbox {
-    assert!(start < end && end <= data.len());
-    let mut bbox = InputBbox::new(data[start]);
-    for &xy in &data[start..end] {
+fn input_bbox(data: &[[i32; 2]]) -> InputBbox {
+    let mut bbox = InputBbox::new(data[0]);
+    for &xy in &data[1..] {
         bbox.update(xy);
     }
     bbox
@@ -1073,17 +1011,22 @@ fn input_bbox(data: &[[i32; 2]], start: usize, end: usize) -> InputBbox {
 /// coordinates into the 15-bit z-order range.
 fn z_order(xy: [i32; 2], min_x: i32, min_y: i32, shift: u32) -> i32 {
     // coords are transformed into non-negative 15-bit integer range
-    let x = (((xy[0] as i64) - (min_x as i64)) >> shift) as u32 & 0x7FFF;
-    let y = (((xy[1] as i64) - (min_y as i64)) >> shift) as u32 & 0x7FFF;
-    let mut xy = (x as i64) << 32 | y as i64;
-    xy = (xy | (xy << 8)) & 0x00FF00FF00FF00FF;
-    xy = (xy | (xy << 4)) & 0x0F0F0F0F0F0F0F0F;
-    xy = (xy | (xy << 2)) & 0x3333333333333333;
-    xy = (xy | (xy << 1)) & 0x5555555555555555;
-    (xy >> 32 | xy << 1) as i32
+    let mut x = (((xy[0] as i64) - (min_x as i64)) >> shift) as u32 & 0x7FFF;
+    let mut y = (((xy[1] as i64) - (min_y as i64)) >> shift) as u32 & 0x7FFF;
+
+    x = (x | (x << 8)) & 0x00FF00FF;
+    x = (x | (x << 4)) & 0x0F0F0F0F;
+    x = (x | (x << 2)) & 0x33333333;
+    x = (x | (x << 1)) & 0x55555555;
+
+    y = (y | (y << 8)) & 0x00FF00FF;
+    y = (y | (y << 4)) & 0x0F0F0F0F;
+    y = (y | (y << 2)) & 0x33333333;
+    y = (y | (y << 1)) & 0x55555555;
+
+    (x | (y << 1)) as i32
 }
 
-#[allow(clippy::too_many_arguments)]
 fn point_in_triangle(a: [i32; 2], b: [i32; 2], c: [i32; 2], p: [i32; 2]) -> bool {
     let (ax, ay) = (a[0] as i64, a[1] as i64);
     let (bx, by) = (b[0] as i64, b[1] as i64);
@@ -1094,7 +1037,6 @@ fn point_in_triangle(a: [i32; 2], b: [i32; 2], c: [i32; 2], p: [i32; 2]) -> bool
         && ((bx - px) * (cy - py) >= (cx - px) * (by - py))
 }
 
-#[allow(clippy::too_many_arguments)]
 fn point_in_triangle_except_first(a: [i32; 2], b: [i32; 2], c: [i32; 2], p: [i32; 2]) -> bool {
     !(a[0] == p[0] && a[1] == p[1]) && point_in_triangle(a, b, c, p)
 }
@@ -1123,6 +1065,7 @@ pub struct EarcutI32 {
     data: Vec<[i32; 2]>,
     nodes: Vec<Node>,
     queue: Vec<(NodeOffset, i32)>,
+    sort_queue: Vec<(i32, NodeOffset)>,
 }
 
 impl Default for EarcutI32 {
@@ -1138,6 +1081,7 @@ impl EarcutI32 {
             data: Vec::new(),
             nodes: Vec::new(),
             queue: Vec::new(),
+            sort_queue: Vec::new(),
         }
     }
 
@@ -1157,14 +1101,16 @@ impl EarcutI32 {
         self.data.clear();
         self.data.extend(data);
         triangles_out.clear();
-        if self.data.len() < 3 {
-            return;
-        }
         self.earcut_impl(hole_indices, triangles_out);
     }
 
     fn earcut_impl<N: Index>(&mut self, hole_indices: &[N], triangles_out: &mut Vec<N>) {
-        triangles_out.reserve(self.data.len() + 1);
+        if self.data.len() < 3 {
+            return;
+        }
+        assert!(self.data.len() <= INDEX_MASK as usize + 1);
+
+        triangles_out.reserve(self.data.len().saturating_mul(3));
         self.reset(self.data.len() / 2 * 3);
 
         let has_holes = !hole_indices.is_empty();
@@ -1174,13 +1120,24 @@ impl EarcutI32 {
             self.data.len()
         };
 
+        let Some(mut outer_node_i) = self.linked_list(0, outer_len, true) else {
+            return;
+        };
+        let outer_node = node!(self.nodes, outer_node_i);
+        if outer_node.next_i == outer_node.prev_i {
+            return;
+        }
+        if has_holes {
+            outer_node_i = self.eliminate_holes(hole_indices, outer_node_i);
+        }
+
         let mut min_x = 0i32;
         let mut min_y = 0i32;
         let mut shift = NO_HASH;
         let mut small_path = false;
         let need_bbox = self.data.len() > 80 || !has_holes;
         if need_bbox {
-            let bbox = input_bbox(&self.data, 0, outer_len);
+            let bbox = input_bbox(&self.data[..outer_len]);
             min_x = bbox.min_x;
             min_y = bbox.min_y;
             let range_x = (bbox.max_x as i64) - (bbox.min_x as i64);
@@ -1194,17 +1151,6 @@ impl EarcutI32 {
             }
         }
 
-        let Some(mut outer_node_i) = self.linked_list(0, outer_len, true) else {
-            return;
-        };
-        let outer_node = node!(self.nodes, outer_node_i);
-        if outer_node.next_i == outer_node.prev_i {
-            return;
-        }
-        if has_holes {
-            outer_node_i = self.eliminate_holes(hole_indices, outer_node_i);
-        }
-
         earcut_linked(
             &mut self.nodes,
             outer_node_i,
@@ -1213,15 +1159,20 @@ impl EarcutI32 {
             min_y,
             shift,
             small_path,
+            &mut self.sort_queue,
             Pass::P0,
         );
     }
 
     fn linked_list(&mut self, start: usize, end: usize, clockwise: bool) -> Option<NodeOffset> {
-        assert!(start <= end && end <= self.data.len());
+        let data = &self.data[start..end];
+        if data.is_empty() {
+            return None;
+        }
+
         let mut last_i = None;
-        let iter = self.data[start..end].iter().enumerate();
-        if clockwise == (signed_area(&self.data, start, end) > 0) {
+        let iter = data.iter().enumerate();
+        if clockwise == (signed_area(data) > 0) {
             for (i, &xy) in iter {
                 last_i = Some(insert_node(&mut self.nodes, (start + i) as u32, xy, last_i));
             }

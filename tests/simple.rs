@@ -1,3 +1,4 @@
+use earcut::int::{EarcutI32, deviation as int_deviation};
 use earcut::{Earcut, deviation};
 
 #[test]
@@ -158,6 +159,77 @@ fn test_map_3d_to_2d() {
         deviation(data.iter().map(|v| [v[0], v[1]]), hole_indices, &triangles),
         0.0
     );
+}
+
+#[test]
+fn test_int_empty() {
+    let mut earcut = EarcutI32::new();
+    let data: [[i32; 2]; 0] = [];
+    let hole_indices: &[u32] = &[];
+    let mut triangles: Vec<u32> = vec![];
+    earcut.earcut(data.iter().copied(), hole_indices, &mut triangles);
+    assert_eq!(triangles.len(), 0);
+}
+
+#[test]
+fn test_int_invalid_point() {
+    let mut earcut = EarcutI32::new();
+    let data = [[100, 200]];
+    let hole_indices: &[u32] = &[];
+    let mut triangles: Vec<u32> = vec![];
+    earcut.earcut(data.iter().copied(), hole_indices, &mut triangles);
+    assert_eq!(triangles.len(), 0);
+}
+
+#[test]
+fn test_int_invalid_line() {
+    let mut earcut = EarcutI32::new();
+    let data = [[0, 0], [100, 200]];
+    let hole_indices: &[u32] = &[];
+    let mut triangles: Vec<u32> = vec![];
+    earcut.earcut(data.iter().copied(), hole_indices, &mut triangles);
+    assert_eq!(triangles.len(), 0);
+}
+
+#[test]
+fn test_int_empty_outer_ring() {
+    // hole_indices[0] == 0 means the outer ring is empty: matches JS behavior
+    let mut earcut = EarcutI32::new();
+    let data = [[0, 0], [100, 0], [100, 100], [0, 100]];
+    let hole_indices: &[u32] = &[0];
+    let mut triangles: Vec<u32> = vec![];
+    earcut.earcut(data.iter().copied(), hole_indices, &mut triangles);
+    assert_eq!(triangles.len(), 0);
+    assert_eq!(
+        int_deviation(data.iter().copied(), hole_indices, &triangles),
+        0
+    );
+}
+
+#[test]
+fn test_int_degenerate_outer_ring() {
+    // outer ring with 2 vertices: linked list builds a degenerate ring where
+    // `prev_i == next_i`, exercising the degenerate-ring early return.
+    let mut earcut = EarcutI32::new();
+    let data = [[0, 0], [100, 0], [10, 10], [90, 10], [10, 90]];
+    let hole_indices: &[u32] = &[2];
+    let mut triangles: Vec<u32> = vec![];
+    earcut.earcut(data.iter().copied(), hole_indices, &mut triangles);
+    assert_eq!(triangles.len(), 0);
+    assert_eq!(
+        int_deviation(data.iter().copied(), hole_indices, &triangles),
+        0
+    );
+}
+
+#[test]
+fn test_int_square() {
+    let mut earcut = EarcutI32::new();
+    let data = [[0, 0], [100, 0], [100, 100], [0, 100]];
+    let hole_indices: &[u32] = &[];
+    let mut triangles: Vec<u32> = vec![];
+    earcut.earcut(data.iter().copied(), hole_indices, &mut triangles);
+    assert_eq!(triangles, vec![2, 3, 0, 0, 1, 2]);
 }
 
 #[test]

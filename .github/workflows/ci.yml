@@ -40,7 +40,7 @@ jobs:
 
   release:
     name: Release-plz release
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository_owner == 'georust'
     needs: test
     runs-on: ubuntu-latest
     concurrency:
@@ -51,16 +51,39 @@ jobs:
       id-token: write
       pull-requests: read
     steps:
-      - name: Checkout repository
+      - &checkout
+        name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Install Rust toolchain
+      - &install-rust
+        name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Run release-plz
         uses: release-plz/action@d5a2b630feb35385893823d8e2b82aa955218b74
         with:
           command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-pr:
+    name: Release-plz PR
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository_owner == 'georust'
+    needs: test
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-plz-pr-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - *checkout
+      - *install-rust
+      - name: Run release-plz
+        uses: release-plz/action@d5a2b630feb35385893823d8e2b82aa955218b74
+        with:
+          command: release-pr
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
