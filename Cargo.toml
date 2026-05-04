@@ -19,10 +19,16 @@ num-traits = { version = "0.2" }
 
 [dev-dependencies]
 criterion = "0.8"
+eframe = "0.34.1"
+spade = "2.15.1"
 
 [[bench]]
 name = "benchmark"
 harness = false
+
+[[example]]
+name = "visualizer"
+test = false
 
 [profile.release]
 opt-level = 3

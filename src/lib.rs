@@ -231,6 +231,12 @@ impl<T: Float> Earcut<T> {
     /// Performs the earcut triangulation on a polygon.
     ///
     /// The API is similar to the original JavaScript implementation, except you can provide a vector for the output indices.
+    ///
+    /// # Panics
+    ///
+    /// - if `hole_indices` contains a value greater than the number of
+    ///   vertices in `data`, or is not monotonically non-decreasing.
+    /// - if the input has more than 2^31 vertices
     pub fn earcut<N: Index>(
         &mut self,
         data: impl IntoIterator<Item = [T; 2]>,
@@ -240,10 +246,6 @@ impl<T: Float> Earcut<T> {
         self.data.clear();
         self.data.extend(data);
         triangles_out.clear();
-        self.earcut_impl(hole_indices, triangles_out);
-    }
-
-    pub fn earcut_impl<N: Index>(&mut self, hole_indices: &[N], triangles_out: &mut Vec<N>) {
         if self.data.len() < 3 {
             return;
         }
@@ -1166,9 +1168,6 @@ fn z_order<T: Float>(xy: [T; 2], min_x: T, min_y: T, inv_size: T) -> i32 {
     // coords are transformed into non-negative 15-bit integer range
     let x_scaled = (xy[0] - min_x) * inv_size;
     let y_scaled = (xy[1] - min_y) * inv_size;
-    debug_assert!(x_scaled >= T::zero() && x_scaled < T::from(32768.0).unwrap());
-    debug_assert!(y_scaled >= T::zero() && y_scaled < T::from(32768.0).unwrap());
-
     let mut x = x_scaled.to_f64().unwrap() as u32;
     let mut y = y_scaled.to_f64().unwrap() as u32;
 

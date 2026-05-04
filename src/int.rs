@@ -1092,6 +1092,12 @@ impl EarcutI32 {
     }
 
     /// Performs earcut triangulation on `i32` coordinates.
+    ///
+    /// # Panics
+    ///
+    /// - if `hole_indices` contains a value greater than the number of
+    ///   vertices in `data`, or is not monotonically non-decreasing.
+    /// - if the input has more than 2^31 vertices
     pub fn earcut<N: Index>(
         &mut self,
         data: impl IntoIterator<Item = [i32; 2]>,
@@ -1101,10 +1107,6 @@ impl EarcutI32 {
         self.data.clear();
         self.data.extend(data);
         triangles_out.clear();
-        self.earcut_impl(hole_indices, triangles_out);
-    }
-
-    fn earcut_impl<N: Index>(&mut self, hole_indices: &[N], triangles_out: &mut Vec<N>) {
         if self.data.len() < 3 {
             return;
         }
