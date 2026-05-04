@@ -37,6 +37,18 @@ Time per iteration (smaller is better). Measured on a MacBook Pro (M1 Pro).
 
 Note: [earcut.hpp](https://github.com/mapbox/earcut.hpp) has not fully caught up with the latest [mapbox/earcut](https://github.com/mapbox/earcut).
 
+## Demo
+
+A simple egui-based visualizer for inspecting how earcut works.
+
+```bash
+cargo run --example visualizer
+```
+
+<p align="center">
+<img src="./docs/visualizer.png" width="auto">
+</p>
+
 ## License
 
 Licensed under either the MIT License ([LICENSE-MIT](LICENSE-MIT)) or the Apache License 2.0 ([LICENSE-APACHE](LICENSE-APACHE)) at your option.
