@@ -1,6 +1,6 @@
 [package]
 name = "earcut"
-version = "0.4.9"
+version = "0.4.10"
 edition = "2024"
 description = "A Rust port of the Earcut polygon triangulation library"
 authors = ["Taku Fukada <naninunenor@gmail.com>"]
