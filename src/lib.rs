@@ -1827,31 +1827,6 @@ pub fn deviation<T: Float, N: Index>(
     triangles: &[N],
 ) -> T {
     let data = data.into_iter().collect::<Vec<[T; 2]>>();
-    let has_holes = !hole_indices.is_empty();
-    let outer_len = match has_holes {
-        true => hole_indices[0].into_usize(),
-        false => data.len(),
-    };
-    let polygon_area = if data.len() < 3 || outer_len < 3 {
-        T::zero()
-    } else {
-        let mut polygon_area = signed_area(&data[..outer_len]).abs();
-        if has_holes {
-            for i in 0..hole_indices.len() {
-                let start = hole_indices[i].into_usize();
-                let end = if i < hole_indices.len() - 1 {
-                    hole_indices[i + 1].into_usize()
-                } else {
-                    data.len()
-                };
-                if end - start >= 3 {
-                    polygon_area = polygon_area - signed_area(&data[start..end]).abs();
-                }
-            }
-        }
-        polygon_area
-    };
-
     let mut triangles_area = T::zero();
     for [a, b, c] in triangles
         .chunks_exact(3)
@@ -1865,21 +1840,63 @@ pub fn deviation<T: Float, N: Index>(
                 - (data[a][0] - data[b][0]) * (data[c][1] - data[a][1]))
                 .abs();
     }
-    // with no triangles, a polygon area within shoelace roundoff of zero (which scales with
-    // the squared coordinate magnitude) means the input was degenerate rather than
-    // mistriangulated
+    // Use a local origin for zero-area output checks, retaining the existing
+    // rounding behavior when comparing nonzero polygon and triangle areas.
+    let ring_area = |ring: &[[T; 2]]| {
+        if triangles_area == T::zero() {
+            deviation_ring_area(ring)
+        } else {
+            signed_area(ring)
+        }
+    };
+    let has_holes = !hole_indices.is_empty();
+    let outer_len = match has_holes {
+        true => hole_indices[0].into_usize(),
+        false => data.len(),
+    };
+    let polygon_area = if data.len() < 3 || outer_len < 3 {
+        T::zero()
+    } else {
+        let mut polygon_area = ring_area(&data[..outer_len]).abs();
+        if has_holes {
+            for i in 0..hole_indices.len() {
+                let start = hole_indices[i].into_usize();
+                let end = if i < hole_indices.len() - 1 {
+                    hole_indices[i + 1].into_usize()
+                } else {
+                    data.len()
+                };
+                if end - start >= 3 {
+                    polygon_area = polygon_area - ring_area(&data[start..end]).abs();
+                }
+            }
+        }
+        polygon_area
+    };
+
+    // Missing or zero-area triangles are valid only for a zero-area polygon.
     if triangles_area == T::zero() {
-        let max = data
-            .iter()
-            .fold(T::zero(), |max, &[x, y]| max.max(x.abs()).max(y.abs()));
-        let roundoff = T::from(data.len() * 2).unwrap() * max * max * T::epsilon();
-        return if polygon_area.abs() <= roundoff {
+        return if polygon_area == T::zero() {
             T::zero()
         } else {
             T::one()
         };
     }
     ((polygon_area - triangles_area) / polygon_area).abs()
+}
+
+/// Twice the signed ring area, using a local origin to avoid cancellation
+/// caused by translating a small polygon to large coordinates.
+fn deviation_ring_area<T: Float>(data: &[[T; 2]]) -> T {
+    let [ox, oy] = data[0];
+    let (mut bx, mut by) = (T::zero(), T::zero());
+    let mut sum = T::zero();
+    for &[x, y] in &data[1..] {
+        let (ax, ay) = (x - ox, y - oy);
+        sum = sum + (bx * ay - by * ax);
+        (bx, by) = (ax, ay);
+    }
+    sum
 }
 
 /// signed area of a polygon ring (twice the geometric area)
@@ -2001,7 +2018,8 @@ impl Refiner {
         }
 
         // the predicates below assume CCW triangles; for a CW mesh, swapping each edge's
-        // endpoints mirrors them, so take the winding from the first non-degenerate triangle
+        // endpoints mirrors them. Ignore overflowing orientations when selecting the winding
+        // so they cannot affect otherwise refinable components.
         let cw = triangles
             .chunks_exact(3)
             .map(|t| {
@@ -2011,7 +2029,7 @@ impl Refiner {
                     vertices[t[2].into_usize()],
                 )
             })
-            .find(|&o| o != T::zero())
+            .find(|&o| o.is_finite() && o != T::zero())
             .is_some_and(|o| o < T::zero());
 
         self.prepare(edge_count);

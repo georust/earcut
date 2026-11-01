@@ -387,6 +387,67 @@ fn test_collinear_polygon_has_zero_deviation() {
 }
 
 #[test]
+fn test_deviation_rejects_missing_output_f64() {
+    let no_holes: &[u32] = &[];
+    let empty: &[u32] = &[];
+    for offset in [0.0, 1e8] {
+        let square = [
+            [offset, offset],
+            [offset + 1.0, offset],
+            [offset + 1.0, offset + 1.0],
+            [offset, offset + 1.0],
+        ];
+        assert_eq!(deviation(square, no_holes, empty), 1.0);
+        assert_eq!(deviation(square, no_holes, &[0, 0, 0]), 1.0);
+        assert_eq!(deviation(square, no_holes, &[0, 1, 2]), 0.5);
+        assert_eq!(deviation(square, no_holes, &[0, 1, 2, 0, 2, 3]), 0.0);
+
+        let mut with_hole = square.to_vec();
+        with_hole.extend([
+            [offset + 0.25, offset + 0.25],
+            [offset + 0.75, offset + 0.25],
+            [offset + 0.75, offset + 0.75],
+            [offset + 0.25, offset + 0.75],
+        ]);
+        assert_eq!(deviation(with_hole, &[4], empty), 1.0);
+    }
+
+    // A small positive area must not be treated as numerical degeneracy.
+    let thin = [[0.0, 0.0], [1.0, 0.0], [1.0, 1e-20], [0.0, 1e-20]];
+    assert_eq!(deviation(thin, no_holes, empty), 1.0);
+}
+
+#[test]
+fn test_deviation_rejects_missing_output_f32() {
+    let no_holes: &[u32] = &[];
+    let empty: &[u32] = &[];
+    for offset in [0.0_f32, 4000.0] {
+        let square = [
+            [offset, offset],
+            [offset + 1.0, offset],
+            [offset + 1.0, offset + 1.0],
+            [offset, offset + 1.0],
+        ];
+        assert_eq!(deviation(square, no_holes, empty), 1.0);
+        assert_eq!(deviation(square, no_holes, &[0, 0, 0]), 1.0);
+        assert_eq!(deviation(square, no_holes, &[0, 1, 2]), 0.5);
+        assert_eq!(deviation(square, no_holes, &[0, 1, 2, 0, 2, 3]), 0.0);
+
+        let mut with_hole = square.to_vec();
+        with_hole.extend([
+            [offset + 0.25, offset + 0.25],
+            [offset + 0.75, offset + 0.25],
+            [offset + 0.75, offset + 0.75],
+            [offset + 0.25, offset + 0.75],
+        ]);
+        assert_eq!(deviation(with_hole, &[4], empty), 1.0);
+    }
+
+    let thin = [[0.0_f32, 0.0], [1.0, 0.0], [1.0, 1e-8], [0.0, 1e-8]];
+    assert_eq!(deviation(thin, no_holes, empty), 1.0);
+}
+
+#[test]
 fn test_large_convex_polygon() {
     // a strictly convex ring skips the point checks of ear slicing; with them, each
     // hashed check of its fan of long triangles scans a large part of the ring
