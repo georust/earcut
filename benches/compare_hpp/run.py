@@ -216,7 +216,7 @@ def main():
         raise RuntimeError("The benchmark source snapshot changed during measurement")
     results = {}
     for name in names:
-        modes = measurements[name]
+        modes = measurements.get(name, {})
         expected = set(args.modes) - ({"i32"} if not available[name] else set())
         if set(modes) != expected:
             raise RuntimeError(f"missing measurements for {name}")
