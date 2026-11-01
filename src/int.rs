@@ -188,11 +188,53 @@ struct LinkInfo {
 }
 
 const HOLE_BLOCK_SIZE: usize = 16;
+// For a few short rings, index construction costs more than direct traversal.
+// Limit both dimensions: even short inputs can have many holes to bridge.
+const DIRECT_BRIDGE_MAX_VERTICES: usize = 4 * HOLE_BLOCK_SIZE;
+const DIRECT_BRIDGE_MAX_HOLES: usize = 4;
+/// Member slots per chunk, and how many blocks a freshly filled chunk takes, which
+/// leaves room for merged holes to be inserted without splitting right away.
+const CHUNK_CAPACITY: usize = 32;
+const CHUNK_FILL: usize = 16;
 
+/// Bounding-box blocks used while holes are merged into the outer ring.
+///
+/// Every indexed node records its owning block in `z`, and a block is the run
+/// of consecutive ring nodes carrying its id, starting at its head. Walking a
+/// block therefore stops as soon as the ring leaves it, so a hole spliced into
+/// the middle of an older block is never re-walked through that block.
+///
+/// Blocks are grouped into chunks of consecutive blocks with a combined bbox, so
+/// a bridge search can skip a whole chunk at once. Chunks are listed in ring
+/// order (`chunk_order`) and keep their blocks in ring order, so scanning visits
+/// edges in the same order as walking the merged ring from the outer ring's
+/// head; this keeps tie-breaking in `find_hole_bridge` identical to an
+/// unindexed scan. All storage is flat and reused across triangulations.
 struct HoleBlockIndex {
+    /// per block: bbox of its edges, first node, and the chunk holding it
     bboxes: Vec<[i32; 4]>,
     heads: Vec<NodeOffset>,
-    stops: Vec<NodeOffset>,
+    block_chunks: Vec<u32>,
+    /// per chunk: combined bbox, member count, and `CHUNK_CAPACITY` member slots;
+    /// the slots are kept across triangulations and only read up to the member count
+    chunk_bboxes: Vec<[i32; 4]>,
+    chunk_lens: Vec<u32>,
+    chunk_members: Vec<u32>,
+    /// chunks in ring order
+    chunk_order: Vec<u32>,
+    /// blocks waiting to be placed by `insert_after`
+    pending: Vec<u32>,
+}
+
+fn empty_bbox() -> [i32; 4] {
+    [i32::MAX, i32::MAX, i32::MIN, i32::MIN]
+}
+
+fn union_bbox(bbox: &mut [i32; 4], other: [i32; 4]) {
+    bbox[0] = bbox[0].min(other[0]);
+    bbox[1] = bbox[1].min(other[1]);
+    bbox[2] = bbox[2].max(other[2]);
+    bbox[3] = bbox[3].max(other[3]);
 }
 
 impl HoleBlockIndex {
@@ -200,30 +242,47 @@ impl HoleBlockIndex {
         Self {
             bboxes: Vec::new(),
             heads: Vec::new(),
-            stops: Vec::new(),
+            block_chunks: Vec::new(),
+            chunk_bboxes: Vec::new(),
+            chunk_lens: Vec::new(),
+            chunk_members: Vec::new(),
+            chunk_order: Vec::new(),
+            pending: Vec::new(),
         }
     }
 
     fn reset(&mut self, max_nodes: usize, num_holes: usize) {
         self.bboxes.clear();
         self.heads.clear();
-        self.stops.clear();
+        self.block_chunks.clear();
+        self.chunk_bboxes.clear();
+        self.chunk_lens.clear();
+        self.chunk_order.clear();
 
         let indexed_nodes = max_nodes.saturating_add(num_holes.saturating_mul(2));
+        // one partial block per indexed segment, plus one detached tail per merge
         let max_blocks = indexed_nodes
             .div_ceil(HOLE_BLOCK_SIZE)
-            .saturating_add(num_holes)
+            .saturating_add(num_holes.saturating_mul(2))
             .saturating_add(2);
         self.bboxes.reserve(max_blocks);
         self.heads.reserve(max_blocks);
-        self.stops.reserve(max_blocks);
+        self.block_chunks.reserve(max_blocks);
     }
 
-    fn index_segment(&mut self, nodes: &mut [Node], head_i: NodeOffset, stop_i: NodeOffset) {
+    /// Index the ring run `head..stop`; `head == stop` means the whole ring.
+    /// Returns the last new block; the caller places the new blocks in chunks.
+    fn index_segment(
+        &mut self,
+        nodes: &mut [Node],
+        head_i: NodeOffset,
+        stop_i: NodeOffset,
+    ) -> usize {
         let mut p_i = head_i;
         loop {
             let block = self.bboxes.len();
             self.heads.push(p_i);
+            self.block_chunks.push(u32::MAX);
 
             let mut min_x = i32::MAX;
             let mut min_y = i32::MAX;
@@ -250,41 +309,178 @@ impl HoleBlockIndex {
             }
 
             self.bboxes.push([min_x, min_y, max_x, max_y]);
-            self.stops.push(p_i);
             if p_i == stop_i {
-                break;
+                return block;
             }
         }
     }
 
-    fn grow(&mut self, block: usize, [x, y]: [i32; 2]) {
-        let bbox = &mut self.bboxes[block];
-        bbox[0] = bbox[0].min(x);
-        bbox[1] = bbox[1].min(y);
-        bbox[2] = bbox[2].max(x);
-        bbox[3] = bbox[3].max(y);
+    fn index_outer(&mut self, nodes: &mut [Node], outer_i: NodeOffset) {
+        let last = self.index_segment(nodes, outer_i, outer_i);
+        for block in 0..=last {
+            if block % CHUNK_FILL == 0 {
+                let chunk = self.new_chunk();
+                self.chunk_order.push(chunk as u32);
+            }
+            self.push_member(self.chunk_lens.len() - 1, block as u32);
+        }
     }
 
-    fn live_head(&mut self, nodes: &[Node], block: usize) -> NodeOffset {
-        let mut head_i = self.heads[block];
+    /// Index a hole just merged at `bridge` (the ring run `bridge..stop`) and place its
+    /// blocks right after the block that owned `bridge`, where the hole now sits in the ring.
+    fn index_merged_hole(&mut self, nodes: &mut [Node], bridge_i: NodeOffset, stop_i: NodeOffset) {
+        let old_block = node!(nodes, bridge_i).z;
+        let first = self.bboxes.len() as u32;
+        let last = self.index_segment(nodes, bridge_i, stop_i) as u32;
+        let tail = self.detach_tail(nodes, old_block, stop_i).map(|b| b as u32);
+        let replace = Self::live_head(&mut self.heads, nodes, old_block as usize).is_none();
+        self.insert_after(old_block as usize, first..=last, tail, replace);
+    }
+
+    fn new_chunk(&mut self) -> usize {
+        let chunk = self.chunk_lens.len();
+        self.chunk_lens.push(0);
+        self.chunk_bboxes.push(empty_bbox());
+        let slots_end = (chunk + 1) * CHUNK_CAPACITY;
+        if self.chunk_members.len() < slots_end {
+            self.chunk_members.resize(slots_end, 0);
+        }
+        chunk
+    }
+
+    fn push_member(&mut self, chunk: usize, block: u32) {
+        let len = self.chunk_lens[chunk] as usize;
+        self.chunk_members[chunk * CHUNK_CAPACITY + len] = block;
+        self.chunk_lens[chunk] += 1;
+        self.block_chunks[block as usize] = chunk as u32;
+        union_bbox(&mut self.chunk_bboxes[chunk], self.bboxes[block as usize]);
+    }
+
+    fn chunk_range(&self, chunk: usize) -> core::ops::Range<usize> {
+        let start = chunk * CHUNK_CAPACITY;
+        start..start + self.chunk_lens[chunk] as usize
+    }
+
+    /// Place the new blocks `new` followed by `tail` (in ring order) right after `block`.
+    /// If its chunk overflows, the chunk keeps the blocks before the insertion point
+    /// and the rest spill into new chunks that follow it in ring order.
+    fn insert_after(
+        &mut self,
+        block: usize,
+        new: core::ops::RangeInclusive<u32>,
+        tail: Option<u32>,
+        replace: bool,
+    ) {
+        let chunk = self.block_chunks[block] as usize;
+        let range = self.chunk_range(chunk);
+        let at = range.start
+            + self.chunk_members[range.clone()]
+                .iter()
+                .position(|&b| b as usize == block)
+                .expect("block belongs to its chunk")
+            + usize::from(!replace);
+        let removed = usize::from(replace);
+        let n = (new.end() - new.start() + 1) as usize + usize::from(tail.is_some());
+
+        if range.len() + n - removed <= CHUNK_CAPACITY {
+            self.chunk_members
+                .copy_within(at + removed..range.end, at + n);
+            for (slot, b) in (at..).zip(new.chain(tail)) {
+                self.chunk_members[slot] = b;
+                self.block_chunks[b as usize] = chunk as u32;
+                union_bbox(&mut self.chunk_bboxes[chunk], self.bboxes[b as usize]);
+            }
+            self.chunk_lens[chunk] += (n - removed) as u32;
+            return;
+        }
+
+        self.pending.clear();
+        self.pending.extend(new.chain(tail));
+        self.pending
+            .extend_from_slice(&self.chunk_members[at + removed..range.end]);
+        let kept = at - range.start;
+        self.chunk_lens[chunk] = 0;
+        self.chunk_bboxes[chunk] = empty_bbox();
+        for k in range.start..at {
+            let b = self.chunk_members[k];
+            self.push_member(chunk, b);
+        }
+
+        let first_new = self.chunk_lens.len();
+        let mut target = chunk;
+        let mut room = CHUNK_FILL.saturating_sub(kept);
+        for k in 0..self.pending.len() {
+            if room == 0 {
+                target = self.new_chunk();
+                room = CHUNK_FILL;
+            }
+            let b = self.pending[k];
+            self.push_member(target, b);
+            room -= 1;
+        }
+
+        let order_at = self
+            .chunk_order
+            .iter()
+            .position(|&c| c as usize == chunk)
+            .expect("chunk is listed in ring order")
+            + 1;
+        self.chunk_order.splice(
+            order_at..order_at,
+            first_new as u32..self.chunk_lens.len() as u32,
+        );
+    }
+
+    fn grow(&mut self, block: usize, [x, y]: [i32; 2]) {
+        let point = [x, y, x, y];
+        union_bbox(&mut self.bboxes[block], point);
+        union_bbox(
+            &mut self.chunk_bboxes[self.block_chunks[block] as usize],
+            point,
+        );
+    }
+
+    /// First live node of the block, or `None` once none of its nodes are left.
+    ///
+    /// Removed nodes keep their links, so skipping forward from a removed head
+    /// reaches either the block's next survivor or a node owned elsewhere. Takes
+    /// only `heads`, so a scan can keep iterating a chunk's members meanwhile.
+    fn live_head(heads: &mut [NodeOffset], nodes: &[Node], block: usize) -> Option<NodeOffset> {
+        let mut head_i = heads[block];
         let mut prev_i = node!(nodes, head_i).prev_i;
         while node!(nodes, prev_i).next_i != head_i {
             head_i = node!(nodes, head_i).next_i;
             prev_i = node!(nodes, head_i).prev_i;
         }
-        self.heads[block] = head_i;
-        head_i
+        heads[block] = head_i;
+        (node!(nodes, head_i).z == block as i32).then_some(head_i)
     }
 
-    fn live_stop(&mut self, nodes: &[Node], block: usize) -> NodeOffset {
-        let mut stop_i = self.stops[block];
-        let mut prev_i = node!(nodes, stop_i).prev_i;
-        while node!(nodes, prev_i).next_i != stop_i {
-            stop_i = node!(nodes, stop_i).next_i;
-            prev_i = node!(nodes, stop_i).prev_i;
+    /// Merging a hole at `bridge` re-owns the bridge node, which cuts its former
+    /// block in two. Give the part after the bridge (starting at `tail`) a block
+    /// of its own so it stays reachable; it inherits the old bbox, which still
+    /// covers all of its edges.
+    fn detach_tail(
+        &mut self,
+        nodes: &mut [Node],
+        old_block: i32,
+        tail_i: NodeOffset,
+    ) -> Option<usize> {
+        if node!(nodes, tail_i).z != old_block {
+            return None;
         }
-        self.stops[block] = stop_i;
-        stop_i
+        let block = self.bboxes.len();
+        let block_z = i32::try_from(block).expect("too many hole index blocks");
+        self.bboxes.push(self.bboxes[old_block as usize]);
+        self.heads.push(tail_i);
+        self.block_chunks.push(u32::MAX);
+        let mut p_i = tail_i;
+        while node!(nodes, p_i).z == old_block {
+            let p = node_mut!(nodes, p_i);
+            p.z = block_z;
+            p_i = p.next_i;
+        }
+        Some(block)
     }
 }
 
@@ -360,6 +556,7 @@ impl Node {
 
 /// main ear slicing loop which triangulates a polygon (given as a linked list)
 #[allow(clippy::too_many_arguments)]
+#[inline(always)]
 fn earcut_linked<N: Index>(
     nodes: &mut Vec<Node>,
     ear_i: NodeOffset,
@@ -372,17 +569,61 @@ fn earcut_linked<N: Index>(
     sort_scratch: &mut Vec<(i32, NodeOffset)>,
     split_stack: &mut Vec<NodeOffset>,
 ) {
+    if shift != NO_HASH {
+        earcut_linked_impl::<N, true>(
+            nodes,
+            ear_i,
+            triangles,
+            min_x,
+            min_y,
+            shift,
+            small_path,
+            sort_queue,
+            sort_scratch,
+            split_stack,
+        );
+    } else {
+        earcut_linked_impl::<N, false>(
+            nodes,
+            ear_i,
+            triangles,
+            min_x,
+            min_y,
+            shift,
+            small_path,
+            sort_queue,
+            sort_scratch,
+            split_stack,
+        );
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn earcut_linked_impl<N: Index, const HASHED: bool>(
+    nodes: &mut Vec<Node>,
+    ear_i: NodeOffset,
+    triangles: &mut Vec<N>,
+    min_x: i32,
+    min_y: i32,
+    shift: u32,
+    small_path: bool,
+    sort_queue: &mut Vec<(i32, NodeOffset)>,
+    sort_scratch: &mut Vec<(i32, NodeOffset)>,
+    split_stack: &mut Vec<NodeOffset>,
+) {
     let mut ear_i = ear_i;
-    let hashed = shift != NO_HASH;
 
     // interlink polygon nodes in z-order
-    if hashed {
+    if HASHED {
         index_curve(nodes, ear_i, min_x, min_y, shift, sort_queue, sort_scratch);
     }
 
     let mut stop_i = ear_i;
     let mut cured = false;
-    let mut convex = hashed && is_convex(nodes, ear_i);
+    // a strictly convex ring has no vertex that could block an ear, so skip the point
+    // checks until a candidate fails; without this, a big convex ring is cut as one fan
+    // of long triangles and each hashed check scans O(n) points
+    let mut convex = HASHED && is_convex(nodes, ear_i);
 
     loop {
         let ear = node!(nodes, ear_i);
@@ -391,10 +632,10 @@ fn earcut_linked<N: Index>(
         }
         let ni = ear.next_i;
 
-        let (is_ear, prev, next) = if hashed && convex {
+        let (is_ear, prev, next) = if HASHED && convex {
             let (a, c) = (node!(nodes, ear.prev_i), node!(nodes, ear.next_i));
             (area(a, ear, c) < 0, a, c)
-        } else if hashed {
+        } else if HASHED {
             is_ear_hashed(nodes, ear, min_x, min_y, shift)
         } else if small_path {
             is_ear_small(nodes, ear)
@@ -455,7 +696,6 @@ fn is_convex(nodes: &[Node], start_i: NodeOffset) -> bool {
         }
     }
 }
-
 /// check whether a polygon node forms a valid ear with adjacent nodes
 fn is_ear<'a>(nodes: &'a [Node], ear: &'a Node) -> (bool, &'a Node, &'a Node) {
     let b = ear;
@@ -684,8 +924,8 @@ fn cure_local_intersections<N: Index>(
     }
 }
 
-/// try splitting polygon into two and triangulate them independently
-#[allow(clippy::too_many_arguments)]
+/// try splitting polygon into two; both halves are queued on `split_stack` to be
+/// triangulated independently, `a` on top so it is triangulated first
 fn split_earcut(nodes: &mut Vec<Node>, start_i: NodeOffset, split_stack: &mut Vec<NodeOffset>) {
     // look for a valid diagonal that divides the polygon into two
     let mut ai = start_i;
@@ -901,13 +1141,18 @@ fn eliminate_hole(
     };
     let bridge_reverse_i = split_polygon(nodes, bridge_i, hole_i);
 
+    if blocks.chunk_order.is_empty() {
+        return heal_bridge(nodes, bridge_i, bridge_reverse_i, hole_i, None);
+    }
+
     let bridge2_i = node!(nodes, bridge_reverse_i).next_i;
     let stop_i = node!(nodes, bridge2_i).next_i;
-    blocks.index_segment(nodes, bridge_i, stop_i);
+    blocks.index_merged_hole(nodes, bridge_i, stop_i);
 
     heal_bridge(nodes, bridge_i, bridge_reverse_i, hole_i, Some(blocks))
 }
 
+/// heal collinear/coincident points around the two new slit edges of a merged hole
 fn heal_bridge(
     nodes: &mut [Node],
     bridge_i: NodeOffset,
@@ -963,6 +1208,19 @@ fn find_hole_bridge(
     outer_node_i: NodeOffset,
     blocks: &mut HoleBlockIndex,
 ) -> Option<NodeOffset> {
+    if blocks.chunk_order.is_empty() {
+        let mut head_i = blocks.heads[0];
+        loop {
+            let prev_i = node!(nodes, head_i).prev_i;
+            if node!(nodes, prev_i).next_i == head_i {
+                break;
+            }
+            head_i = node!(nodes, head_i).next_i;
+        }
+        blocks.heads[0] = head_i;
+        return find_hole_bridge_linear(nodes, hole, outer_node_i, head_i);
+    }
+
     // Best ray/segment crossing as an exact fraction `(num, den)`, `den > 0`.
     let mut qx: Option<(i64, i64)> = None;
     let mut m_i: Option<NodeOffset> = None;
@@ -974,24 +1232,39 @@ fn find_hole_bridge(
     if equals(hole, node!(nodes, outer_node_i)) {
         return Some(outer_node_i);
     }
-    for block in 0..blocks.bboxes.len() {
-        let [min_x, min_y, max_x, max_y] = blocks.bboxes[block];
-        if hy < min_y
-            || hy > max_y
-            || min_x > hx
-            || qx.is_some_and(|(n, d)| n >= i64::from(max_x) * d)
+    let single_chunk = blocks.chunk_order.len() == 1;
+    for ci in 0..blocks.chunk_order.len() {
+        let chunk = blocks.chunk_order[ci] as usize;
+        let [min_x, min_y, max_x, max_y] = blocks.chunk_bboxes[chunk];
+        if !single_chunk
+            && (hy < min_y
+                || hy > max_y
+                || min_x > hx
+                || qx.is_some_and(|(n, d)| n >= i64::from(max_x) * d))
         {
             continue;
         }
+        let members = blocks.chunk_range(chunk);
+        for &block in &blocks.chunk_members[members] {
+            let block = block as usize;
+            let [min_x, min_y, max_x, max_y] = blocks.bboxes[block];
+            if hy < min_y
+                || hy > max_y
+                || min_x > hx
+                || qx.is_some_and(|(n, d)| n >= i64::from(max_x) * d)
+            {
+                continue;
+            }
 
-        let stop_i = blocks.live_stop(nodes, block);
-        let mut p_i = blocks.live_head(nodes, block);
-        loop {
-            let p = node!(nodes, p_i);
-            let next_i = p.next_i;
-            let p_next = node!(nodes, next_i);
-            let live = node!(nodes, p.prev_i).next_i == p_i;
-            if live {
+            let Some(head_i) = HoleBlockIndex::live_head(&mut blocks.heads, nodes, block) else {
+                continue;
+            };
+            // walking `next` from a live node only visits live nodes
+            let mut p_i = head_i;
+            loop {
+                let p = node!(nodes, p_i);
+                let next_i = p.next_i;
+                let p_next = node!(nodes, next_i);
                 if equals(hole, p_next) {
                     return Some(next_i);
                 }
@@ -1010,10 +1283,10 @@ fn find_hole_bridge(
                         }
                     }
                 }
-            }
-            p_i = next_i;
-            if p_i == stop_i {
-                break;
+                p_i = next_i;
+                if p_i == head_i || p_next.z != p.z {
+                    break;
+                }
             }
         }
     }
@@ -1034,46 +1307,158 @@ fn find_hole_bridge(
     let triangle_min_y = hy.min(mxmy[1]);
     let triangle_max_y = hy.max(mxmy[1]);
 
-    for block in 0..blocks.bboxes.len() {
-        let [min_x, min_y, max_x, max_y] = blocks.bboxes[block];
-        if max_x < mxmy[0] || min_x > hx || max_y < triangle_min_y || min_y > triangle_max_y {
+    let single_chunk = blocks.chunk_order.len() == 1;
+    for ci in 0..blocks.chunk_order.len() {
+        let chunk = blocks.chunk_order[ci] as usize;
+        let [min_x, min_y, max_x, max_y] = blocks.chunk_bboxes[chunk];
+        if !single_chunk
+            && (max_x < mxmy[0] || min_x > hx || max_y < triangle_min_y || min_y > triangle_max_y)
+        {
             continue;
         }
+        let members = blocks.chunk_range(chunk);
+        for &block in &blocks.chunk_members[members] {
+            let block = block as usize;
+            let [min_x, min_y, max_x, max_y] = blocks.bboxes[block];
+            if max_x < mxmy[0] || min_x > hx || max_y < triangle_min_y || min_y > triangle_max_y {
+                continue;
+            }
 
-        let stop_i = blocks.live_stop(nodes, block);
-        let mut p_i = blocks.live_head(nodes, block);
-        loop {
-            let p = node!(nodes, p_i);
-            let next_i = p.next_i;
-            let live = node!(nodes, p.prev_i).next_i == p_i;
-            if live
-                && hx >= p.xy[0]
-                && p.xy[0] >= mxmy[0]
-                && hx != p.xy[0]
-                && point_in_bridge_triangle([hx, hy], mxmy, qx_num, qx_den, p.xy)
-            {
-                // `tan` cross products are differences bounded by the 2^30 range,
-                // so this comparison stays exact in i64.
-                let abs_dy = i64::from(hy).abs_diff(i64::from(p.xy[1])) as i64;
-                let dx = i64::from(hx) - i64::from(p.xy[0]);
-                let cmp = (abs_dy * tan_min_dx).cmp(&(tan_min_abs_dy * dx));
-                let p_next = node!(nodes, next_i);
-                if (locally_inside(nodes, p, hole)
-                    || (p.xy[1] == hy && p_next.xy[1] == hy && p_next.xy[0] > hx))
-                    && (cmp.is_lt()
-                        || (cmp.is_eq()
-                            && (p.xy[0] > m.xy[0]
-                                || (p.xy[0] == m.xy[0] && sector_contains_sector(nodes, m, p)))))
+            let Some(head_i) = HoleBlockIndex::live_head(&mut blocks.heads, nodes, block) else {
+                continue;
+            };
+            let mut p_i = head_i;
+            loop {
+                let p = node!(nodes, p_i);
+                if p.z as usize != block {
+                    break;
+                }
+                let next_i = p.next_i;
+                if hx >= p.xy[0]
+                    && p.xy[0] >= mxmy[0]
+                    && hx != p.xy[0]
+                    && point_in_bridge_triangle([hx, hy], mxmy, qx_num, qx_den, p.xy)
                 {
-                    (m_i, m) = (p_i, p);
-                    tan_min_abs_dy = abs_dy;
-                    tan_min_dx = dx;
+                    // `tan` cross products are differences bounded by the 2^30 range,
+                    // so this comparison stays exact in i64.
+                    let abs_dy = i64::from(hy).abs_diff(i64::from(p.xy[1])) as i64;
+                    let dx = i64::from(hx) - i64::from(p.xy[0]);
+                    let cmp = (abs_dy * tan_min_dx).cmp(&(tan_min_abs_dy * dx));
+                    let p_next = node!(nodes, next_i);
+                    if (locally_inside(nodes, p, hole)
+                        || (p.xy[1] == hy && p_next.xy[1] == hy && p_next.xy[0] > hx))
+                        && (cmp.is_lt()
+                            || (cmp.is_eq()
+                                && (p.xy[0] > m.xy[0]
+                                    || (p.xy[0] == m.xy[0]
+                                        && sector_contains_sector(nodes, m, p)))))
+                    {
+                        (m_i, m) = (p_i, p);
+                        tan_min_abs_dy = abs_dy;
+                        tan_min_dx = dx;
+                    }
+                }
+                p_i = next_i;
+                if p_i == head_i {
+                    break;
                 }
             }
-            p_i = next_i;
-            if p_i == stop_i {
-                break;
+        }
+    }
+
+    Some(m_i)
+}
+
+// Direct ring traversal, derived from this module's bridge search.
+fn find_hole_bridge_linear(
+    nodes: &[Node],
+    hole: &Node,
+    outer_node_i: NodeOffset,
+    head_i: NodeOffset,
+) -> Option<NodeOffset> {
+    // Best ray/segment crossing as an exact fraction `(num, den)`, `den > 0`.
+    let mut qx: Option<(i64, i64)> = None;
+    let mut m_i: Option<NodeOffset> = None;
+    let [hx, hy] = hole.xy;
+
+    // find a segment intersected by a ray from the hole's leftmost point to the left;
+    // segment's endpoint with lesser x will be potential connection point
+    // unless they intersect at a vertex, then choose the vertex
+    if equals(hole, node!(nodes, outer_node_i)) {
+        return Some(outer_node_i);
+    }
+    let mut p_i = head_i;
+    loop {
+        let p = node!(nodes, p_i);
+        let next_i = p.next_i;
+        let p_next = node!(nodes, next_i);
+        if equals(hole, p_next) {
+            return Some(next_i);
+        }
+        if hy <= p.xy[1] && hy >= p_next.xy[1] && p_next.xy[1] != p.xy[1] {
+            // Exact fractional ray/segment intersection avoids the rounding
+            // that a truncating integer division would introduce, which
+            // can otherwise pick a non-visible bridge on sheared inputs.
+            let (x_num, x_den) = ray_intersection_x(p.xy, p_next.xy, hy);
+            let hx_scaled = i64::from(hx) * x_den;
+            if x_num <= hx_scaled && qx.is_none_or(|(n, d)| x_num * d > n * x_den) {
+                qx = Some((x_num, x_den));
+                m_i = Some(if p.xy[0] < p_next.xy[0] { p_i } else { next_i });
+                if x_num == hx_scaled {
+                    // hole touches outer segment; pick leftmost endpoint
+                    return m_i;
+                }
             }
+        }
+        p_i = next_i;
+        if p_i == head_i {
+            break;
+        }
+    }
+
+    let mut m_i = m_i?;
+    let (qx_num, qx_den) = qx.expect("a bridge endpoint requires a ray intersection");
+
+    // look for points inside the triangle of hole point, segment intersection and endpoint;
+    // if there are no points found, we have a valid connection;
+    // otherwise choose the point of the minimum angle with the ray as connection point
+
+    let mut m = node!(nodes, m_i);
+    let mxmy = m.xy;
+    // `tan_min` as (|dy|, dx) — represents +infinity while dx == 0.
+    let mut tan_min_abs_dy: i64 = 1;
+    let mut tan_min_dx: i64 = 0;
+
+    let mut p_i = head_i;
+    loop {
+        let p = node!(nodes, p_i);
+        let next_i = p.next_i;
+        if hx >= p.xy[0]
+            && p.xy[0] >= mxmy[0]
+            && hx != p.xy[0]
+            && point_in_bridge_triangle([hx, hy], mxmy, qx_num, qx_den, p.xy)
+        {
+            // `tan` cross products are differences bounded by the 2^30 range,
+            // so this comparison stays exact in i64.
+            let abs_dy = i64::from(hy).abs_diff(i64::from(p.xy[1])) as i64;
+            let dx = i64::from(hx) - i64::from(p.xy[0]);
+            let cmp = (abs_dy * tan_min_dx).cmp(&(tan_min_abs_dy * dx));
+            let p_next = node!(nodes, next_i);
+            if (locally_inside(nodes, p, hole)
+                || (p.xy[1] == hy && p_next.xy[1] == hy && p_next.xy[0] > hx))
+                && (cmp.is_lt()
+                    || (cmp.is_eq()
+                        && (p.xy[0] > m.xy[0]
+                            || (p.xy[0] == m.xy[0] && sector_contains_sector(nodes, m, p)))))
+            {
+                (m_i, m) = (p_i, p);
+                tan_min_abs_dy = abs_dy;
+                tan_min_dx = dx;
+            }
+        }
+        p_i = next_i;
+        if p_i == head_i {
+            break;
         }
     }
 
@@ -1322,7 +1707,8 @@ pub struct EarcutI32 {
     queue: Vec<(NodeOffset, i32)>,
     sort_queue: Vec<(i32, NodeOffset)>,
     sort_scratch: Vec<(i32, NodeOffset)>,
-    /// Pending polygon halves, avoiding recursion for deeply nested splits.
+    /// halves of split polygons waiting to be triangulated, so deeply nested
+    /// splits don't grow the call stack
     split_stack: Vec<NodeOffset>,
     hole_blocks: HoleBlockIndex,
 }
@@ -1355,6 +1741,12 @@ impl EarcutI32 {
 
     /// Performs earcut triangulation on `i32` coordinates.
     ///
+    /// # Compatibility
+    ///
+    /// The triangulation and index order are not guaranteed to match
+    /// mapbox/earcut (upstream main at `934e54d`). Ties between candidates
+    /// for a hole bridge may be resolved differently.
+    ///
     /// # Domain
     ///
     /// Every coordinate must lie within `[-2^19, 2^19]` on both axes.
@@ -1382,9 +1774,14 @@ impl EarcutI32 {
     /// Same as [`earcut`](Self::earcut), but takes the vertices as a slice, which is
     /// read in place instead of being copied into an internal buffer first.
     ///
+    /// # Compatibility
+    ///
+    /// Same as [`earcut`](Self::earcut).
+    ///
     /// # Panics
     ///
     /// Same as [`earcut`](Self::earcut).
+    #[inline(always)]
     pub fn earcut_slice<N: Index>(
         &mut self,
         data: &[[i32; 2]],
@@ -1433,6 +1830,7 @@ impl EarcutI32 {
         self.run::<N>(data, hole_indices, triangles_out, bbox);
     }
 
+    #[inline]
     fn run<N: Index>(
         &mut self,
         data: &[[i32; 2]],
@@ -1535,6 +1933,7 @@ impl EarcutI32 {
         last_i
     }
 
+    #[inline(never)]
     fn eliminate_holes<N: Index>(
         &mut self,
         data: &[[i32; 2]],
@@ -1579,9 +1978,17 @@ impl EarcutI32 {
             (ady * bdx).cmp(&(bdy * adx))
         });
 
-        self.hole_blocks.reset(data.len(), hole_indices.len());
-        self.hole_blocks
-            .index_segment(&mut self.nodes, outer_node_i, outer_node_i);
+        // Keep the initial ring anchor on the direct path so candidate ties
+        // use the same traversal order as the indexed path.
+        if data.len() <= DIRECT_BRIDGE_MAX_VERTICES && hole_indices.len() <= DIRECT_BRIDGE_MAX_HOLES
+        {
+            self.hole_blocks.chunk_order.clear();
+            self.hole_blocks.heads.clear();
+            self.hole_blocks.heads.push(outer_node_i);
+        } else {
+            self.hole_blocks.reset(data.len(), hole_indices.len());
+            self.hole_blocks.index_outer(&mut self.nodes, outer_node_i);
+        }
 
         for i in 0..self.queue.len() {
             let q = self.queue[i].0;
