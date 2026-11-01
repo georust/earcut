@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.12](https://github.com/georust/earcut/compare/v0.4.11...v0.4.12) - 2026-11-02
+
+### Added
+
+- Slice input APIs for floating-point and integer coordinates.
+- Reproducible Rust and C++ benchmark tooling.
+
+### Changed
+
+- Faster hole bridging and specialized ear-clipping loops.
+- Sync upstream fixes through [mapbox/earcut@934e54d](https://github.com/mapbox/earcut/commit/934e54d).
+- Update the visualizer to eframe 0.37.0.
+
+### Fixed
+
+- Detect missing triangulation output for translated and thin polygons.
+- Ignore overflowing orientations when choosing refinement winding.
+- Align the visualizer's Y axis and vertex dragging with screen coordinates.
+
 ## [0.4.11](https://github.com/georust/earcut/compare/v0.4.10...v0.4.11) - 2026-07-25
 
 ### Added

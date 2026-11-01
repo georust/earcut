@@ -1,6 +1,6 @@
 [package]
 name = "earcut"
-version = "0.4.11"
+version = "0.4.12"
 edition = "2024"
 description = "A Rust port of the Earcut polygon triangulation library"
 authors = ["Taku Fukada <naninunenor@gmail.com>"]
@@ -20,7 +20,7 @@ num-traits = { version = "0.2" }
 
 [dev-dependencies]
 criterion = "0.8"
-eframe = "0.34.1"
+eframe = "0.37.0"
 fastrand = "2"
 
 [[bench]]
