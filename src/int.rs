@@ -1357,15 +1357,32 @@ impl EarcutI32 {
     ) {
         self.data.clear();
         self.data.extend(data);
+        let data = core::mem::take(&mut self.data);
+        self.earcut_slice(&data, hole_indices, triangles_out);
+        self.data = data;
+    }
+
+    /// Same as [`earcut`](Self::earcut), but takes the vertices as a slice, which is
+    /// read in place instead of being copied into an internal buffer first.
+    ///
+    /// # Panics
+    ///
+    /// Same as [`earcut`](Self::earcut).
+    pub fn earcut_slice<N: Index>(
+        &mut self,
+        data: &[[i32; 2]],
+        hole_indices: &[N],
+        triangles_out: &mut Vec<N>,
+    ) {
         triangles_out.clear();
 
         let mut previous_hole = 0;
         for &hole in hole_indices {
             let hole = hole.into_usize();
             assert!(
-                hole <= self.data.len(),
+                hole <= data.len(),
                 "EarcutI32 hole index {hole} exceeds vertex count {}",
-                self.data.len()
+                data.len()
             );
             assert!(
                 hole >= previous_hole,
@@ -1374,10 +1391,10 @@ impl EarcutI32 {
             previous_hole = hole;
         }
 
-        if self.data.is_empty() {
+        if data.is_empty() {
             return;
         }
-        let bbox = input_bbox(&self.data);
+        let bbox = input_bbox(data);
         assert!(
             bbox.min_x >= -MAX_ABS_COORD
                 && bbox.max_x <= MAX_ABS_COORD
@@ -1389,18 +1406,19 @@ impl EarcutI32 {
             bbox.max_x,
             bbox.max_y
         );
-        if self.data.len() < 3 {
+        if data.len() < 3 {
             return;
         }
-        assert!(self.data.len() <= INDEX_MASK as usize + 1);
+        assert!(data.len() <= INDEX_MASK as usize + 1);
 
-        triangles_out.reserve(self.data.len().saturating_mul(3));
-        self.reset(self.data.len() / 2 * 3);
-        self.run::<N>(hole_indices, triangles_out, bbox);
+        triangles_out.reserve(data.len().saturating_mul(3));
+        self.reset(data.len() / 2 * 3);
+        self.run::<N>(data, hole_indices, triangles_out, bbox);
     }
 
     fn run<N: Index>(
         &mut self,
+        data: &[[i32; 2]],
         hole_indices: &[N],
         triangles_out: &mut Vec<N>,
         full_bbox: InputBbox,
@@ -1409,10 +1427,10 @@ impl EarcutI32 {
         let outer_len = if has_holes {
             hole_indices[0].into_usize()
         } else {
-            self.data.len()
+            data.len()
         };
 
-        let Some(mut outer_node_i) = self.linked_list(0, outer_len, true) else {
+        let Some(mut outer_node_i) = self.linked_list(data, 0, outer_len, true) else {
             return;
         };
         let outer_node = node!(self.nodes, outer_node_i);
@@ -1420,17 +1438,17 @@ impl EarcutI32 {
             return;
         }
         if has_holes {
-            outer_node_i = self.eliminate_holes::<N>(hole_indices, outer_node_i);
+            outer_node_i = self.eliminate_holes::<N>(data, hole_indices, outer_node_i);
         }
 
         let mut min_x = 0i32;
         let mut min_y = 0i32;
         let mut shift = NO_HASH;
         let mut small_path = false;
-        let need_bbox = self.data.len() > 80 || !has_holes;
+        let need_bbox = data.len() > 80 || !has_holes;
         if need_bbox {
             let bbox = if has_holes {
-                input_bbox(&self.data[..outer_len])
+                input_bbox(&data[..outer_len])
             } else {
                 full_bbox
             };
@@ -1439,7 +1457,7 @@ impl EarcutI32 {
             let range_x = i64::from(bbox.max_x) - i64::from(bbox.min_x);
             let range_y = i64::from(bbox.max_y) - i64::from(bbox.min_y);
             let range = range_x.max(range_y);
-            if self.data.len() > 80 && range > 0 {
+            if data.len() > 80 && range > 0 {
                 shift = shift_for_z_order(range);
             }
             if !has_holes && shift == NO_HASH {
@@ -1460,8 +1478,14 @@ impl EarcutI32 {
         );
     }
 
-    fn linked_list(&mut self, start: usize, end: usize, clockwise: bool) -> Option<NodeOffset> {
-        let data = &self.data[start..end];
+    fn linked_list(
+        &mut self,
+        data: &[[i32; 2]],
+        start: usize,
+        end: usize,
+        clockwise: bool,
+    ) -> Option<NodeOffset> {
+        let data = &data[start..end];
         if data.is_empty() {
             return None;
         }
@@ -1490,6 +1514,7 @@ impl EarcutI32 {
 
     fn eliminate_holes<N: Index>(
         &mut self,
+        data: &[[i32; 2]],
         hole_indices: &[N],
         mut outer_node_i: NodeOffset,
     ) -> NodeOffset {
@@ -1499,9 +1524,9 @@ impl EarcutI32 {
             let end = if i < hole_indices.len() - 1 {
                 hole_indices[i + 1].into_usize()
             } else {
-                self.data.len()
+                data.len()
             };
-            if let Some(list_i) = self.linked_list(start, end, false) {
+            if let Some(list_i) = self.linked_list(data, start, end, false) {
                 let list = &mut node_mut!(self.nodes, list_i);
                 if list_i == list.next_i {
                     list.set_steiner();
@@ -1531,7 +1556,7 @@ impl EarcutI32 {
             (ady * bdx).cmp(&(bdy * adx))
         });
 
-        self.hole_blocks.reset(self.data.len(), hole_indices.len());
+        self.hole_blocks.reset(data.len(), hole_indices.len());
         self.hole_blocks
             .index_segment(&mut self.nodes, outer_node_i, outer_node_i);
 

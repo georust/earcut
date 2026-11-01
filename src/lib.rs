@@ -352,33 +352,52 @@ impl<T: Float> Earcut<T> {
     ) {
         self.data.clear();
         self.data.extend(data);
+        let data = core::mem::take(&mut self.data);
+        self.earcut_slice(&data, hole_indices, triangles_out);
+        self.data = data;
+    }
+
+    /// Same as [`earcut`](Self::earcut), but takes the vertices as a slice, which is
+    /// read in place instead of being copied into an internal buffer first.
+    ///
+    /// # Panics
+    ///
+    /// Same as [`earcut`](Self::earcut).
+    pub fn earcut_slice<N: Index>(
+        &mut self,
+        data: &[[T; 2]],
+        hole_indices: &[N],
+        triangles_out: &mut Vec<N>,
+    ) {
         triangles_out.clear();
-        self.run(hole_indices, triangles_out);
+        self.run(data, hole_indices, triangles_out);
     }
 
     #[deprecated(since = "0.4.10", note = "internal entry point; call `earcut` instead")]
     pub fn earcut_impl<N: Index>(&mut self, hole_indices: &[N], triangles_out: &mut Vec<N>) {
-        self.run(hole_indices, triangles_out);
+        let data = core::mem::take(&mut self.data);
+        self.run(&data, hole_indices, triangles_out);
+        self.data = data;
     }
 
-    fn run<N: Index>(&mut self, hole_indices: &[N], triangles_out: &mut Vec<N>) {
-        if self.data.len() < 3 {
+    fn run<N: Index>(&mut self, data: &[[T; 2]], hole_indices: &[N], triangles_out: &mut Vec<N>) {
+        if data.len() < 3 {
             return;
         }
-        assert!(self.data.len() <= INDEX_MASK as usize + 1);
+        assert!(data.len() <= INDEX_MASK as usize + 1);
 
-        triangles_out.reserve(self.data.len().saturating_mul(3));
-        self.reset(self.data.len() / 2 * 3);
+        triangles_out.reserve(data.len().saturating_mul(3));
+        self.reset(data.len() / 2 * 3);
 
         let has_holes = !hole_indices.is_empty();
         let outer_len: usize = if has_holes {
             hole_indices[0].into_usize()
         } else {
-            self.data.len()
+            data.len()
         };
 
         // create nodes
-        let Some(mut outer_node_i) = self.linked_list(0, outer_len, true) else {
+        let Some(mut outer_node_i) = self.linked_list(data, 0, outer_len, true) else {
             return;
         };
         let outer_node = node!(self.nodes, outer_node_i);
@@ -386,7 +405,7 @@ impl<T: Float> Earcut<T> {
             return;
         }
         if has_holes {
-            outer_node_i = self.eliminate_holes(hole_indices, outer_node_i);
+            outer_node_i = self.eliminate_holes(data, hole_indices, outer_node_i);
         }
 
         let mut min_x = T::zero();
@@ -394,10 +413,10 @@ impl<T: Float> Earcut<T> {
         let mut inv_size = T::zero();
 
         // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
-        if self.data.len() > 80 {
-            let [x0, y0] = self.data[0];
+        if data.len() > 80 {
+            let [x0, y0] = data[0];
             let (mut mnx, mut mny, mut mxx, mut mxy) = (x0, y0, x0, y0);
-            for &[x, y] in &self.data[1..outer_len] {
+            for &[x, y] in &data[1..outer_len] {
                 mnx = T::min(mnx, x);
                 mny = T::min(mny, y);
                 mxx = T::max(mxx, x);
@@ -425,8 +444,14 @@ impl<T: Float> Earcut<T> {
     }
 
     /// create a circular doubly linked list from polygon points in the specified winding order
-    fn linked_list(&mut self, start: usize, end: usize, clockwise: bool) -> Option<NodeOffset> {
-        let data = &self.data[start..end];
+    fn linked_list(
+        &mut self,
+        data: &[[T; 2]],
+        start: usize,
+        end: usize,
+        clockwise: bool,
+    ) -> Option<NodeOffset> {
+        let data = &data[start..end];
         if data.is_empty() {
             return None;
         }
@@ -461,6 +486,7 @@ impl<T: Float> Earcut<T> {
     /// link every hole into the outer loop, producing a single-ring polygon without holes
     fn eliminate_holes<N: Index>(
         &mut self,
+        data: &[[T; 2]],
         hole_indices: &[N],
         mut outer_node_i: NodeOffset,
     ) -> NodeOffset {
@@ -470,9 +496,9 @@ impl<T: Float> Earcut<T> {
             let end = if i < hole_indices.len() - 1 {
                 hole_indices[i + 1].into_usize()
             } else {
-                self.data.len()
+                data.len()
             };
-            if let Some(list_i) = self.linked_list(start, end, false) {
+            if let Some(list_i) = self.linked_list(data, start, end, false) {
                 let list = &mut node_mut!(self.nodes, list_i);
                 if list_i == list.next_i {
                     list.set_steiner();
@@ -505,7 +531,7 @@ impl<T: Float> Earcut<T> {
             a_slope.partial_cmp(&b_slope).unwrap_or(Ordering::Equal)
         });
 
-        self.hole_blocks.reset(self.data.len(), hole_indices.len());
+        self.hole_blocks.reset(data.len(), hole_indices.len());
         self.hole_blocks
             .index_segment(&mut self.nodes, outer_node_i, outer_node_i);
 

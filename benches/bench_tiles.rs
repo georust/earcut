@@ -42,7 +42,7 @@ fn bench_tiles(c: &mut Criterion) {
     group.bench_function("earcut", |b| {
         b.iter(|| {
             for (vertices, holes) in &polygons_f64 {
-                earcut.earcut(vertices.iter().copied(), holes, &mut triangles);
+                earcut.earcut_slice(vertices, holes, &mut triangles);
                 black_box(&triangles);
             }
         })
@@ -53,7 +53,7 @@ fn bench_tiles(c: &mut Criterion) {
     group.bench_function("earcut-int", |b| {
         b.iter(|| {
             for (vertices, holes) in &polygons_i32 {
-                earcut_int.earcut(vertices.iter().copied(), holes, &mut triangles_int);
+                earcut_int.earcut_slice(vertices, holes, &mut triangles_int);
                 black_box(&triangles_int);
             }
         })
@@ -63,7 +63,7 @@ fn bench_tiles(c: &mut Criterion) {
     group.bench_function("earcut+refine", |b| {
         b.iter(|| {
             for (vertices, holes) in &polygons_f64 {
-                earcut.earcut(vertices.iter().copied(), holes, &mut triangles);
+                earcut.earcut_slice(vertices, holes, &mut triangles);
                 refiner.refine(&mut triangles, vertices);
                 black_box(&triangles);
             }

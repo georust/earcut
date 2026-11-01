@@ -77,7 +77,7 @@ fn bench(c: &mut Criterion) {
         let (data, hole_indices) = flatten(rings);
         c.bench_function(name, |b| {
             b.iter(|| {
-                earcut.earcut(data.iter().copied(), &hole_indices, &mut triangles);
+                earcut.earcut_slice(&data, &hole_indices, &mut triangles);
             })
         });
     }
@@ -88,7 +88,7 @@ fn bench(c: &mut Criterion) {
         let (data, hole_indices) = flatten_i32(rings).expect("fixture is integer-valued");
         c.bench_function(&format!("int/{name}"), |b| {
             b.iter(|| {
-                earcut_int.earcut(data.iter().copied(), &hole_indices, &mut triangles_i);
+                earcut_int.earcut_slice(&data, &hole_indices, &mut triangles_i);
             })
         });
     }

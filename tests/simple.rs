@@ -345,3 +345,29 @@ fn test_square_with_square_hole() {
         0.0
     );
 }
+
+#[test]
+fn test_slice_matches_iterator() {
+    let data = [
+        [0.0, 0.0],
+        [100.0, 0.0],
+        [100.0, 100.0],
+        [0.0, 100.0],
+        [20.0, 20.0],
+        [80.0, 20.0],
+        [80.0, 80.0],
+        [20.0, 80.0],
+    ];
+    let hole_indices: &[u32] = &[4];
+    let mut earcut = Earcut::new();
+    let (mut from_iter, mut from_slice) = (vec![], vec![]);
+    earcut.earcut(data.iter().copied(), hole_indices, &mut from_iter);
+    earcut.earcut_slice(&data, hole_indices, &mut from_slice);
+    assert_eq!(from_slice, from_iter);
+
+    let data_i: Vec<[i32; 2]> = data.iter().map(|&[x, y]| [x as i32, y as i32]).collect();
+    let mut earcut_i = EarcutI32::new();
+    earcut_i.earcut(data_i.iter().copied(), hole_indices, &mut from_iter);
+    earcut_i.earcut_slice(&data_i, hole_indices, &mut from_slice);
+    assert_eq!(from_slice, from_iter);
+}
