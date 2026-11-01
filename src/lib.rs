@@ -304,6 +304,8 @@ pub struct Earcut<T: Float> {
     queue: Vec<(NodeOffset, T)>,
     sort_queue: Vec<(i32, NodeOffset)>,
     sort_scratch: Vec<(i32, NodeOffset)>,
+    /// Pending polygon halves, avoiding recursion for deeply nested splits.
+    split_stack: Vec<NodeOffset>,
     hole_blocks: HoleBlockIndex<T>,
 }
 
@@ -324,6 +326,7 @@ impl<T: Float> Earcut<T> {
             queue: Vec::new(),
             sort_queue: Vec::new(),
             sort_scratch: Vec::new(),
+            split_stack: Vec::new(),
             hole_blocks: HoleBlockIndex::new(),
         }
     }
@@ -431,16 +434,22 @@ impl<T: Float> Earcut<T> {
             }
         }
 
-        earcut_linked(
-            &mut self.nodes,
-            outer_node_i,
-            triangles_out,
-            min_x,
-            min_y,
-            inv_size,
-            &mut self.sort_queue,
-            &mut self.sort_scratch,
-        );
+        self.split_stack.clear();
+        let mut start_i = Some(outer_node_i);
+        while let Some(ear_i) = start_i {
+            earcut_linked(
+                &mut self.nodes,
+                ear_i,
+                triangles_out,
+                min_x,
+                min_y,
+                inv_size,
+                &mut self.sort_queue,
+                &mut self.sort_scratch,
+                &mut self.split_stack,
+            );
+            start_i = self.split_stack.pop();
+        }
     }
 
     /// create a circular doubly linked list from polygon points in the specified winding order
@@ -559,11 +568,13 @@ fn earcut_linked<T: Float, N: Index>(
     inv_size: T,
     sort_queue: &mut Vec<(i32, NodeOffset)>,
     sort_scratch: &mut Vec<(i32, NodeOffset)>,
+    split_stack: &mut Vec<NodeOffset>,
 ) {
     let mut ear_i = ear_i;
+    let hashed = inv_size != T::zero();
 
     // interlink polygon nodes in z-order
-    if inv_size != T::zero() {
+    if hashed {
         index_curve(
             nodes,
             ear_i,
@@ -577,6 +588,7 @@ fn earcut_linked<T: Float, N: Index>(
 
     let mut stop_i = ear_i;
     let mut cured = false;
+    let mut convex = hashed && is_convex(nodes, ear_i);
 
     // iterate through ears, slicing them one by one
     loop {
@@ -586,7 +598,10 @@ fn earcut_linked<T: Float, N: Index>(
         }
         let ni = ear.next_i;
 
-        let (is_ear, prev, next) = if inv_size != T::zero() {
+        let (is_ear, prev, next) = if hashed && convex {
+            let (a, c) = (node!(nodes, ear.prev_i), node!(nodes, ear.next_i));
+            (area(a, ear, c) < T::zero(), a, c)
+        } else if hashed {
             is_ear_hashed(nodes, ear, min_x, min_y, inv_size)
         } else {
             is_ear(nodes, ear)
@@ -610,6 +625,7 @@ fn earcut_linked<T: Float, N: Index>(
             continue;
         }
 
+        convex = false;
         ear_i = ni;
 
         // if we looped through the whole remaining polygon and can't find any more ears
@@ -632,17 +648,23 @@ fn earcut_linked<T: Float, N: Index>(
                 continue;
             }
 
-            split_earcut(
-                nodes,
-                ear_i,
-                triangles,
-                min_x,
-                min_y,
-                inv_size,
-                sort_queue,
-                sort_scratch,
-            );
+            split_earcut(nodes, ear_i, split_stack);
             break;
+        }
+    }
+}
+
+/// check whether every vertex of a ring is strictly convex
+fn is_convex<T: Float>(nodes: &[Node<T>], start_i: NodeOffset) -> bool {
+    let mut p_i = start_i;
+    loop {
+        let p = node!(nodes, p_i);
+        if area(node!(nodes, p.prev_i), p, node!(nodes, p.next_i)) >= T::zero() {
+            return false;
+        }
+        p_i = p.next_i;
+        if p_i == start_i {
+            return true;
         }
     }
 }
@@ -831,15 +853,10 @@ fn cure_local_intersections<T: Float, N: Index>(
 
 /// try splitting polygon into two and triangulate them independently
 #[allow(clippy::too_many_arguments)]
-fn split_earcut<T: Float, N: Index>(
+fn split_earcut<T: Float>(
     nodes: &mut Vec<Node<T>>,
     start_i: NodeOffset,
-    triangles: &mut Vec<N>,
-    min_x: T,
-    min_y: T,
-    inv_size: T,
-    sort_queue: &mut Vec<(i32, NodeOffset)>,
-    sort_scratch: &mut Vec<(i32, NodeOffset)>,
+    split_stack: &mut Vec<NodeOffset>,
 ) {
     // look for a valid diagonal that divides the polygon into two
     let mut ai = start_i;
@@ -861,27 +878,8 @@ fn split_earcut<T: Float, N: Index>(
                 let end_i = Some(node!(nodes, ci).next_i);
                 ci = filter_points(nodes, ci, end_i, None).0;
 
-                // run earcut on each half
-                earcut_linked(
-                    nodes,
-                    ai,
-                    triangles,
-                    min_x,
-                    min_y,
-                    inv_size,
-                    sort_queue,
-                    sort_scratch,
-                );
-                earcut_linked(
-                    nodes,
-                    ci,
-                    triangles,
-                    min_x,
-                    min_y,
-                    inv_size,
-                    sort_queue,
-                    sort_scratch,
-                );
+                // queue both halves for earcut, a on top so it's triangulated first
+                split_stack.extend([ci, ai]);
                 return;
             }
             bi = b.next_i;
@@ -1131,11 +1129,42 @@ fn eliminate_hole<T: Float>(
     let stop_i = node!(nodes, bridge2_i).next_i;
     blocks.index_segment(nodes, bridge_i, stop_i);
 
-    // filter collinear points around the cuts
-    let end_i = Some(node!(nodes, bridge_reverse_i).next_i);
-    filter_points(nodes, bridge_reverse_i, end_i, Some(blocks));
-    let end_i = Some(node!(nodes, bridge_i).next_i);
-    filter_points(nodes, bridge_i, end_i, Some(blocks)).0
+    heal_bridge(nodes, bridge_i, bridge_reverse_i, hole_i, Some(blocks))
+}
+
+fn heal_bridge<T: Float>(
+    nodes: &mut [Node<T>],
+    bridge_i: NodeOffset,
+    bridge_reverse_i: NodeOffset,
+    hole_i: NodeOffset,
+    mut blocks: Option<&mut HoleBlockIndex<T>>,
+) -> NodeOffset {
+    // leave bridge2 alone: dropping it as collinear would leave bridge lying on the
+    // healed edge, where a later hole could bridge into it from outside its sector
+    let start_i = node!(nodes, bridge_reverse_i).prev_i;
+    filter_points(
+        nodes,
+        start_i,
+        Some(bridge_reverse_i),
+        blocks.as_deref_mut(),
+    );
+
+    // likewise, if bridge lies strictly between its prev and hole, healing would drop it
+    // and leave bridge2 on the healed edge; skip the heal then (a spike at bridge, e.g.
+    // a hole touching an outer edge, still needs it)
+    let bridge = node!(nodes, bridge_i);
+    let a = node!(nodes, bridge.prev_i);
+    let hole = node!(nodes, hole_i);
+    if area(a, bridge, hole) == T::zero()
+        && (a.xy[0] - bridge.xy[0]) * (hole.xy[0] - bridge.xy[0])
+            + (a.xy[1] - bridge.xy[1]) * (hole.xy[1] - bridge.xy[1])
+            < T::zero()
+    {
+        return bridge_i;
+    }
+
+    let end_i = Some(bridge.next_i);
+    filter_points(nodes, bridge_i, end_i, blocks).0
 }
 
 /// check if a polygon diagonal is locally inside the polygon
@@ -1436,11 +1465,21 @@ pub fn deviation<T: Float, N: Index>(
                 - (data[a][0] - data[b][0]) * (data[c][1] - data[a][1]))
                 .abs();
     }
-    if polygon_area == T::zero() && triangles_area == T::zero() {
-        T::zero()
-    } else {
-        ((polygon_area - triangles_area) / polygon_area).abs()
+    // with no triangles, a polygon area within shoelace roundoff of zero (which scales with
+    // the squared coordinate magnitude) means the input was degenerate rather than
+    // mistriangulated
+    if triangles_area == T::zero() {
+        let max = data
+            .iter()
+            .fold(T::zero(), |max, &[x, y]| max.max(x.abs()).max(y.abs()));
+        let roundoff = T::from(data.len() * 2).unwrap() * max * max * T::epsilon();
+        return if polygon_area.abs() <= roundoff {
+            T::zero()
+        } else {
+            T::one()
+        };
     }
+    ((polygon_area - triangles_area) / polygon_area).abs()
 }
 
 /// signed area of a polygon ring (twice the geometric area)
@@ -1536,8 +1575,9 @@ impl Refiner {
 
     /// Refines a triangulation in place using Lawson edge flips.
     ///
-    /// `triangles` must contain counter-clockwise triples of valid indices into
-    /// `vertices` and describe a manifold triangulation. Boundary edges are
+    /// `triangles` must contain consistently wound triples of valid indices into
+    /// `vertices` and describe a manifold triangulation. Both clockwise and
+    /// counter-clockwise winding are supported. Boundary edges are
     /// never flipped. The predicate intentionally includes a small
     /// floating-point tolerance so nearly cocircular inputs terminate instead
     /// of flipping forever. If the predicate overflows, the affected edge is
@@ -1559,6 +1599,20 @@ impl Refiner {
         if edge_count < 6 {
             return;
         }
+
+        // the predicates below assume CCW triangles; for a CW mesh, swapping each edge's
+        // endpoints mirrors them, so take the winding from the first non-degenerate triangle
+        let cw = triangles
+            .chunks_exact(3)
+            .map(|t| {
+                refine_orient(
+                    vertices[t[0].into_usize()],
+                    vertices[t[1].into_usize()],
+                    vertices[t[2].into_usize()],
+                )
+            })
+            .find(|&o| o != T::zero())
+            .is_some_and(|o| o < T::zero());
 
         self.prepare(edge_count);
         let generation = self.generation;
@@ -1612,8 +1666,8 @@ impl Refiner {
             let br = b0 + (b + 1) % 3;
 
             let p0 = triangles[ar].into_usize();
-            let pr = triangles[a].into_usize();
-            let pl = triangles[al].into_usize();
+            let pr = triangles[if cw { al } else { a }].into_usize();
+            let pl = triangles[if cw { a } else { al }].into_usize();
             let p1 = triangles[bl].into_usize();
 
             let v0 = vertices[p0];
@@ -1695,7 +1749,7 @@ impl Default for Refiner {
 /// Refines a triangulation in place using Lawson edge flips.
 ///
 /// `triangles` has the same input requirements as [`Refiner::refine`],
-/// including counter-clockwise triangle winding.
+/// including consistent clockwise or counter-clockwise triangle winding.
 ///
 /// Use [`Refiner`] instead when refining repeatedly to reuse its scratch
 /// buffers.

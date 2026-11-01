@@ -120,6 +120,17 @@ fn improves_a_bad_quad_diagonal() {
 }
 
 #[test]
+fn improves_a_clockwise_quad_diagonal_keeping_the_winding() {
+    let vertices = [[0.0, 0.0], [3.0, 0.0], [10.0, 1.0], [0.0, 2.0]];
+    let mut triangles = vec![2_u32, 0, 3, 2, 1, 0];
+
+    refine(&mut triangles, &vertices);
+
+    assert_eq!(triangles, [1, 0, 3, 2, 1, 3]);
+    assert_eq!(deviation(vertices, &[], &triangles), 0.0);
+}
+
+#[test]
 fn leaves_a_good_quad_diagonal_alone_and_reuses_scratch() {
     let mut refiner = Refiner::new();
     let bad_vertices = [[0.0, 0.0], [3.0, 0.0], [10.0, 1.0], [0.0, 2.0]];

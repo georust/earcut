@@ -370,16 +370,19 @@ fn earcut_linked<N: Index>(
     small_path: bool,
     sort_queue: &mut Vec<(i32, NodeOffset)>,
     sort_scratch: &mut Vec<(i32, NodeOffset)>,
+    split_stack: &mut Vec<NodeOffset>,
 ) {
     let mut ear_i = ear_i;
+    let hashed = shift != NO_HASH;
 
     // interlink polygon nodes in z-order
-    if shift != NO_HASH {
+    if hashed {
         index_curve(nodes, ear_i, min_x, min_y, shift, sort_queue, sort_scratch);
     }
 
     let mut stop_i = ear_i;
     let mut cured = false;
+    let mut convex = hashed && is_convex(nodes, ear_i);
 
     loop {
         let ear = node!(nodes, ear_i);
@@ -388,7 +391,10 @@ fn earcut_linked<N: Index>(
         }
         let ni = ear.next_i;
 
-        let (is_ear, prev, next) = if shift != NO_HASH {
+        let (is_ear, prev, next) = if hashed && convex {
+            let (a, c) = (node!(nodes, ear.prev_i), node!(nodes, ear.next_i));
+            (area(a, ear, c) < 0, a, c)
+        } else if hashed {
             is_ear_hashed(nodes, ear, min_x, min_y, shift)
         } else if small_path {
             is_ear_small(nodes, ear)
@@ -412,6 +418,7 @@ fn earcut_linked<N: Index>(
             continue;
         }
 
+        convex = false;
         ear_i = ni;
         if ear_i == stop_i {
             let (filtered_i, filtered_out) = filter_points(nodes, ear_i, None, None);
@@ -428,18 +435,23 @@ fn earcut_linked<N: Index>(
                 continue;
             }
 
-            split_earcut::<N>(
-                nodes,
-                ear_i,
-                triangles,
-                min_x,
-                min_y,
-                shift,
-                small_path,
-                sort_queue,
-                sort_scratch,
-            );
+            split_earcut(nodes, ear_i, split_stack);
             break;
+        }
+    }
+}
+
+/// check whether every vertex of a ring is strictly convex
+fn is_convex(nodes: &[Node], start_i: NodeOffset) -> bool {
+    let mut p_i = start_i;
+    loop {
+        let p = node!(nodes, p_i);
+        if area(node!(nodes, p.prev_i), p, node!(nodes, p.next_i)) >= 0 {
+            return false;
+        }
+        p_i = p.next_i;
+        if p_i == start_i {
+            return true;
         }
     }
 }
@@ -674,17 +686,7 @@ fn cure_local_intersections<N: Index>(
 
 /// try splitting polygon into two and triangulate them independently
 #[allow(clippy::too_many_arguments)]
-fn split_earcut<N: Index>(
-    nodes: &mut Vec<Node>,
-    start_i: NodeOffset,
-    triangles: &mut Vec<N>,
-    min_x: i32,
-    min_y: i32,
-    shift: u32,
-    small_path: bool,
-    sort_queue: &mut Vec<(i32, NodeOffset)>,
-    sort_scratch: &mut Vec<(i32, NodeOffset)>,
-) {
+fn split_earcut(nodes: &mut Vec<Node>, start_i: NodeOffset, split_stack: &mut Vec<NodeOffset>) {
     // look for a valid diagonal that divides the polygon into two
     let mut ai = start_i;
     let mut a = node!(nodes, ai);
@@ -706,29 +708,8 @@ fn split_earcut<N: Index>(
                 let end_i = Some(node!(nodes, ci).next_i);
                 ci = filter_points(nodes, ci, end_i, None).0;
 
-                // run earcut on each half
-                earcut_linked::<N>(
-                    nodes,
-                    ai,
-                    triangles,
-                    min_x,
-                    min_y,
-                    shift,
-                    small_path,
-                    sort_queue,
-                    sort_scratch,
-                );
-                earcut_linked::<N>(
-                    nodes,
-                    ci,
-                    triangles,
-                    min_x,
-                    min_y,
-                    shift,
-                    small_path,
-                    sort_queue,
-                    sort_scratch,
-                );
+                // queue both halves for earcut, a on top so it's triangulated first
+                split_stack.extend([ci, ai]);
                 return;
             }
             bi = b.next_i;
@@ -924,11 +905,44 @@ fn eliminate_hole(
     let stop_i = node!(nodes, bridge2_i).next_i;
     blocks.index_segment(nodes, bridge_i, stop_i);
 
-    // filter collinear points around the cuts
-    let end_i = Some(node!(nodes, bridge_reverse_i).next_i);
-    filter_points(nodes, bridge_reverse_i, end_i, Some(blocks));
-    let end_i = Some(node!(nodes, bridge_i).next_i);
-    filter_points(nodes, bridge_i, end_i, Some(blocks)).0
+    heal_bridge(nodes, bridge_i, bridge_reverse_i, hole_i, Some(blocks))
+}
+
+fn heal_bridge(
+    nodes: &mut [Node],
+    bridge_i: NodeOffset,
+    bridge_reverse_i: NodeOffset,
+    hole_i: NodeOffset,
+    mut blocks: Option<&mut HoleBlockIndex>,
+) -> NodeOffset {
+    // leave bridge2 alone: dropping it as collinear would leave bridge lying on the
+    // healed edge, where a later hole could bridge into it from outside its sector
+    let start_i = node!(nodes, bridge_reverse_i).prev_i;
+    filter_points(
+        nodes,
+        start_i,
+        Some(bridge_reverse_i),
+        blocks.as_deref_mut(),
+    );
+
+    // likewise, if bridge lies strictly between its prev and hole, healing would drop it
+    // and leave bridge2 on the healed edge; skip the heal then (a spike at bridge, e.g.
+    // a hole touching an outer edge, still needs it)
+    let bridge = node!(nodes, bridge_i);
+    let a = node!(nodes, bridge.prev_i);
+    let hole = node!(nodes, hole_i);
+    if area(a, bridge, hole) == 0
+        && (i64::from(a.xy[0]) - i64::from(bridge.xy[0]))
+            * (i64::from(hole.xy[0]) - i64::from(bridge.xy[0]))
+            + (i64::from(a.xy[1]) - i64::from(bridge.xy[1]))
+                * (i64::from(hole.xy[1]) - i64::from(bridge.xy[1]))
+            < 0
+    {
+        return bridge_i;
+    }
+
+    let end_i = Some(bridge.next_i);
+    filter_points(nodes, bridge_i, end_i, blocks).0
 }
 
 /// check if a polygon diagonal is locally inside the polygon
@@ -1308,6 +1322,8 @@ pub struct EarcutI32 {
     queue: Vec<(NodeOffset, i32)>,
     sort_queue: Vec<(i32, NodeOffset)>,
     sort_scratch: Vec<(i32, NodeOffset)>,
+    /// Pending polygon halves, avoiding recursion for deeply nested splits.
+    split_stack: Vec<NodeOffset>,
     hole_blocks: HoleBlockIndex,
 }
 
@@ -1326,6 +1342,7 @@ impl EarcutI32 {
             queue: Vec::new(),
             sort_queue: Vec::new(),
             sort_scratch: Vec::new(),
+            split_stack: Vec::new(),
             hole_blocks: HoleBlockIndex::new(),
         }
     }
@@ -1465,17 +1482,23 @@ impl EarcutI32 {
             }
         }
 
-        earcut_linked::<N>(
-            &mut self.nodes,
-            outer_node_i,
-            triangles_out,
-            min_x,
-            min_y,
-            shift,
-            small_path,
-            &mut self.sort_queue,
-            &mut self.sort_scratch,
-        );
+        self.split_stack.clear();
+        let mut start_i = Some(outer_node_i);
+        while let Some(ear_i) = start_i {
+            earcut_linked::<N>(
+                &mut self.nodes,
+                ear_i,
+                triangles_out,
+                min_x,
+                min_y,
+                shift,
+                small_path,
+                &mut self.sort_queue,
+                &mut self.sort_scratch,
+                &mut self.split_stack,
+            );
+            start_i = self.split_stack.pop();
+        }
     }
 
     fn linked_list(

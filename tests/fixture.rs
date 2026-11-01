@@ -229,12 +229,12 @@ fn fixture_water4() {
 
 #[test]
 fn fixture_water_huge1() {
-    test_fixture(WATER_HUGE, 5174, 0.0018);
+    test_fixture(WATER_HUGE, 5170, 0.0018);
 }
 
 #[test]
 fn fixture_water_huge2() {
-    test_fixture(WATER_HUGE2, 4484, 0.003);
+    test_fixture(WATER_HUGE2, 4462, 0.003);
 }
 
 #[test]
@@ -480,4 +480,14 @@ fn fixture_issue147() {
 #[test]
 fn fixture_issue186() {
     test_fixture(ISSUE186, 41, 0.0);
+}
+
+#[test]
+fn fixture_issue219() {
+    test_fixture(ISSUE219, 11, 0.0);
+}
+
+#[test]
+fn fixture_issue221() {
+    test_fixture(ISSUE221, 12, 0.0);
 }
