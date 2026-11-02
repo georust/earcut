@@ -353,7 +353,7 @@ impl eframe::App for Visualizer {
         egui::Panel::left("fixtures")
             .resizable(true)
             .default_size(210.0)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.heading("Fixtures");
                 ui.add_space(6.0);
                 egui::ScrollArea::vertical().show(ui, |ui| {
@@ -368,7 +368,7 @@ impl eframe::App for Visualizer {
         egui::Panel::right("controls")
             .resizable(false)
             .default_size(190.0)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.heading("Triangulation");
                 ui.add_space(6.0);
                 if ui
@@ -422,7 +422,7 @@ impl eframe::App for Visualizer {
                 }
             });
 
-        egui::CentralPanel::default().show_inside(ui, |ui| self.draw_canvas(ui));
+        egui::CentralPanel::default().show(ui, |ui| self.draw_canvas(ui));
     }
 }
 
@@ -522,11 +522,12 @@ impl Transform {
     }
 
     fn point(&self, [x, y]: [f64; 2]) -> Pos2 {
+        // Keep fixture Y aligned with screen Y: positive values point down.
         self.rect.center()
             + self.pan
             + Vec2::new(
                 ((x - self.center[0]) as f32) * self.scale,
-                -((y - self.center[1]) as f32) * self.scale,
+                ((y - self.center[1]) as f32) * self.scale,
             )
     }
 
@@ -534,7 +535,7 @@ impl Transform {
         let d = pos - self.rect.center() - self.pan;
         [
             self.center[0] + (d.x / self.scale) as f64,
-            self.center[1] - (d.y / self.scale) as f64,
+            self.center[1] + (d.y / self.scale) as f64,
         ]
     }
 }

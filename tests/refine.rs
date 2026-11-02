@@ -120,6 +120,53 @@ fn improves_a_bad_quad_diagonal() {
 }
 
 #[test]
+fn improves_a_clockwise_quad_diagonal_keeping_the_winding() {
+    let vertices = [[0.0, 0.0], [3.0, 0.0], [10.0, 1.0], [0.0, 2.0]];
+    let mut triangles = vec![2_u32, 0, 3, 2, 1, 0];
+
+    refine(&mut triangles, &vertices);
+
+    assert_eq!(triangles, [1, 0, 3, 2, 1, 3]);
+    assert_eq!(deviation(vertices, &[], &triangles), 0.0);
+}
+
+#[test]
+fn refines_clockwise_components_after_an_overflowing_orientation() {
+    fn check<T: num_traits::Float>(vertices: &[[T; 2]]) {
+        assert!(vertices.iter().flatten().all(|v| v.is_finite()));
+        let mut triangles = vec![0_u32, 1, 2, 5, 3, 6, 5, 4, 3];
+        refine(&mut triangles, vertices);
+        // The isolated overflowing triangle stays intact; the ordinary quad flips.
+        assert_eq!(triangles, [0, 1, 2, 4, 3, 6, 5, 4, 6]);
+    }
+
+    // All components are clockwise, but the first orientation is infinity - infinity.
+    let mut vertices = [
+        [0.0, 0.0],
+        [0.0, 0.0],
+        [0.0, 0.0],
+        [20.0, 0.0],
+        [23.0, 0.0],
+        [30.0, 1.0],
+        [20.0, 2.0],
+    ];
+    let mut vertices_f32 = vertices.map(|[x, y]| [x as f32, y as f32]);
+    vertices[1] = [1e200, 2e200];
+    vertices[2] = [1e200, 1e200];
+    check(&vertices);
+    // A single overflowing product produces negative infinity rather than NaN.
+    vertices[1] = [-1e200, 0.0];
+    vertices[2] = [0.0, 1e200];
+    check(&vertices);
+    vertices_f32[1] = [1e20, 2e20];
+    vertices_f32[2] = [1e20, 1e20];
+    check(&vertices_f32);
+    vertices_f32[1] = [-1e20, 0.0];
+    vertices_f32[2] = [0.0, 1e20];
+    check(&vertices_f32);
+}
+
+#[test]
 fn leaves_a_good_quad_diagonal_alone_and_reuses_scratch() {
     let mut refiner = Refiner::new();
     let bad_vertices = [[0.0, 0.0], [3.0, 0.0], [10.0, 1.0], [0.0, 2.0]];

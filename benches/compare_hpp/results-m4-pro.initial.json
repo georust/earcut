@@ -1,0 +1,605 @@
+{
+  "date": "2026-11-01",
+  "machine": "Apple M4 Pro",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "cxx": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "rust_revision": "65f4d2ae1c7dde0f6f0a5286f0c19124e7694a42",
+  "rust_working_tree_modified": true,
+  "cpp_revision": "2fbafada15dbe5350c606426e17111b91a964e55",
+  "cpp_working_tree_modified": false,
+  "cpp_flags": [
+    "-std=c++17",
+    "-O3",
+    "-DNDEBUG",
+    "-ffp-contract=off"
+  ],
+  "rust_profile": "release: opt-level=3, codegen-units=1, lto=fat, panic=abort",
+  "processes": 3,
+  "samples_per_process": 11,
+  "minimum_sample_ms": 50,
+  "aggregation": "median of per-process sample medians",
+  "source_sha256": {
+    "src/lib.rs": "6f0dbe5b947302a9a817c438e12007096f100feda4c23639169ef3c5587ef661",
+    "src/int.rs": "4b71d6fad7751570f5307e38ee0ce54868fca706063a046776295d8e3b60ba0d",
+    "src/utils3d.rs": "08824e71d543f7518ef416b48499caac49c8494a5eb440696ae82bf92583a029",
+    "benches/tiles-fixture.bin": "4f58c4cb13f1bb74a71cca25a21379f62882c956274c8ce10352ba132e2be1c7",
+    "earcut.hpp/include/mapbox/earcut.hpp": "29091c0d7af22a2f985f5ebd9aedb1f1b056fe099d1d31395c393c5f1ecb8c52",
+    "benches/compare_hpp/main.rs": "fcb29a3e05a377eeccb4fc2a1d64ea000a7fab8ee357519d34570984d0f1ec91",
+    "benches/compare_hpp/compare.cpp": "44d1f62e586af56d56f04723476e9ffa6f82a2aeaad777e412ae5c07a8f942aa",
+    "benches/compare_hpp/Cargo.toml": "a676fe4f8098b3c0864792832b00dc8914910bfb70af7aa8184f8689eba5bd6b"
+  },
+  "inputs_sha256": "ecebf285208ee28a345d1d58a709f3f4551af749023e9967b5b75501c8e88087",
+  "results": {
+    "bad_hole": {
+      "f64": {
+        "median_ns": 1216.445543,
+        "process_medians_ns": [
+          1294.095147,
+          1216.445543,
+          1214.342319
+        ]
+      },
+      "i32": {
+        "median_ns": 1424.10798,
+        "process_medians_ns": [
+          1501.153371,
+          1420.475852,
+          1424.10798
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 1538.367895,
+        "process_medians_ns": [
+          1584.386323,
+          1519.849818,
+          1538.367895
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 1342.272593,
+        "process_medians_ns": [
+          1376.802982,
+          1342.272593,
+          1338.914009
+        ]
+      }
+    },
+    "building": {
+      "f64": {
+        "median_ns": 95.42798,
+        "process_medians_ns": [
+          105.494683,
+          95.42798,
+          94.209177
+        ]
+      },
+      "i32": {
+        "median_ns": 119.786278,
+        "process_medians_ns": [
+          140.457063,
+          119.786278,
+          116.971396
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 189.636271,
+        "process_medians_ns": [
+          189.636271,
+          192.72921,
+          189.137455
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 116.061233,
+        "process_medians_ns": [
+          121.731096,
+          113.462685,
+          116.061233
+        ]
+      }
+    },
+    "degenerate": {
+      "f64": {
+        "median_ns": 24.387877,
+        "process_medians_ns": [
+          25.216197,
+          24.143144,
+          24.387877
+        ]
+      },
+      "i32": {
+        "median_ns": 29.441824,
+        "process_medians_ns": [
+          31.357004,
+          29.391291,
+          29.441824
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 94.769918,
+        "process_medians_ns": [
+          94.810974,
+          94.769918,
+          94.376349
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 33.212452,
+        "process_medians_ns": [
+          33.561872,
+          33.212452,
+          33.129275
+        ]
+      }
+    },
+    "dude": {
+      "f64": {
+        "median_ns": 2820.216446,
+        "process_medians_ns": [
+          2830.245036,
+          2820.216446,
+          2790.666853
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 3057.261169,
+        "process_medians_ns": [
+          3095.921875,
+          2993.888709,
+          3057.261169
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 2731.342117,
+        "process_medians_ns": [
+          2747.114857,
+          2701.295366,
+          2731.342117
+        ]
+      }
+    },
+    "empty_square": {
+      "f64": {
+        "median_ns": 39.604402,
+        "process_medians_ns": [
+          39.601273,
+          39.604402,
+          40.336853
+        ]
+      },
+      "i32": {
+        "median_ns": 43.945312,
+        "process_medians_ns": [
+          43.380703,
+          43.945312,
+          44.240529
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 184.266749,
+        "process_medians_ns": [
+          186.161927,
+          183.733817,
+          184.266749
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 63.895531,
+        "process_medians_ns": [
+          63.895531,
+          64.220182,
+          62.294596
+        ]
+      }
+    },
+    "water": {
+      "f64": {
+        "median_ns": 134457.25,
+        "process_medians_ns": [
+          134457.25,
+          136112.304688,
+          134334.635417
+        ]
+      },
+      "i32": {
+        "median_ns": 143031.575521,
+        "process_medians_ns": [
+          142808.8125,
+          143134.221354,
+          143031.575521
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 135746.526042,
+        "process_medians_ns": [
+          135953.018229,
+          135039.932292,
+          135746.526042
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 131211.263021,
+        "process_medians_ns": [
+          131211.263021,
+          132662.979167,
+          129814.732143
+        ]
+      }
+    },
+    "water2": {
+      "f64": {
+        "median_ns": 100667.480469,
+        "process_medians_ns": [
+          100399.496094,
+          101513.509766,
+          100667.480469
+        ]
+      },
+      "i32": {
+        "median_ns": 106942.953125,
+        "process_medians_ns": [
+          106680.908203,
+          109620.443359,
+          106942.953125
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 107565.023438,
+        "process_medians_ns": [
+          107565.023438,
+          109362.222656,
+          107199.300781
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 105450.357422,
+        "process_medians_ns": [
+          105450.357422,
+          106176.513672,
+          105166.992188
+        ]
+      }
+    },
+    "water3": {
+      "f64": {
+        "median_ns": 7282.443576,
+        "process_medians_ns": [
+          7195.216886,
+          7282.443576,
+          7388.094487
+        ]
+      },
+      "i32": {
+        "median_ns": 9794.970703,
+        "process_medians_ns": [
+          9773.811719,
+          9840.299414,
+          9794.970703
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 8673.506181,
+        "process_medians_ns": [
+          8673.506181,
+          8689.576042,
+          8603.723043
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 8219.299316,
+        "process_medians_ns": [
+          8219.299316,
+          8232.709704,
+          8204.766113
+        ]
+      }
+    },
+    "water3b": {
+      "f64": {
+        "median_ns": 540.122074,
+        "process_medians_ns": [
+          540.122074,
+          533.738986,
+          545.438885
+        ]
+      },
+      "i32": {
+        "median_ns": 620.484561,
+        "process_medians_ns": [
+          620.690925,
+          606.247067,
+          620.484561
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 834.737664,
+        "process_medians_ns": [
+          872.63562,
+          834.737664,
+          831.630918
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 658.887094,
+        "process_medians_ns": [
+          677.066991,
+          658.887094,
+          645.238736
+        ]
+      }
+    },
+    "water4": {
+      "f64": {
+        "median_ns": 36109.93679,
+        "process_medians_ns": [
+          36109.93679,
+          36109.90767,
+          36402.225142
+        ]
+      },
+      "i32": {
+        "median_ns": 39095.485863,
+        "process_medians_ns": [
+          39062.760156,
+          39095.485863,
+          39446.321875
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 34133.803668,
+        "process_medians_ns": [
+          34110.903533,
+          34402.14538,
+          34133.803668
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 33256.86263,
+        "process_medians_ns": [
+          33335.801432,
+          33223.714193,
+          33256.86263
+        ]
+      }
+    },
+    "water_huge": {
+      "f64": {
+        "median_ns": 596720.703125,
+        "process_medians_ns": [
+          596720.703125,
+          592246.09375,
+          618155.273438
+        ]
+      },
+      "i32": {
+        "median_ns": 791416.015625,
+        "process_medians_ns": [
+          782495.4375,
+          791416.015625,
+          809584.625
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 820624.34375,
+        "process_medians_ns": [
+          820624.34375,
+          808158.203125,
+          826376.953125
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 817657.5625,
+        "process_medians_ns": [
+          808913.421875,
+          817657.5625,
+          826184.25
+        ]
+      }
+    },
+    "water_huge2": {
+      "f64": {
+        "median_ns": 1346759.868421,
+        "process_medians_ns": [
+          1377960.594595,
+          1331664.473684,
+          1346759.868421
+        ]
+      },
+      "i32": {
+        "median_ns": 1876750.0,
+        "process_medians_ns": [
+          1914790.148148,
+          1864581.777778,
+          1876750.0
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 1808005.964286,
+        "process_medians_ns": [
+          1788578.857143,
+          1808005.964286,
+          1870354.962963
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 1765923.827586,
+        "process_medians_ns": [
+          1765923.827586,
+          1763804.586207,
+          1870816.333333
+        ]
+      }
+    },
+    "water_huge3": {
+      "f64": {
+        "median_ns": 10850516.6,
+        "process_medians_ns": [
+          10850516.6,
+          11180650.0,
+          10715725.0
+        ]
+      },
+      "i32": {
+        "median_ns": 11027158.4,
+        "process_medians_ns": [
+          11027158.4,
+          11257508.2,
+          10966983.2
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 17667847.0,
+        "process_medians_ns": [
+          17667847.0,
+          18134944.666667,
+          17648416.666667
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 17813555.333333,
+        "process_medians_ns": [
+          17656708.333333,
+          17947638.666667,
+          17813555.333333
+        ]
+      }
+    },
+    "holes_64": {
+      "f64": {
+        "median_ns": 21978.388889,
+        "process_medians_ns": [
+          21978.388889,
+          22371.112054,
+          21735.080295
+        ]
+      },
+      "i32": {
+        "median_ns": 24317.274621,
+        "process_medians_ns": [
+          24317.274621,
+          25089.986328,
+          24132.773201
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 50187.5,
+        "process_medians_ns": [
+          50102.539062,
+          50332.235352,
+          50187.5
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 49163.615234,
+        "process_medians_ns": [
+          49163.615234,
+          49071.289062,
+          49447.469727
+        ]
+      }
+    },
+    "holes_256": {
+      "f64": {
+        "median_ns": 170450.51875,
+        "process_medians_ns": [
+          170450.51875,
+          175088.15,
+          169470.184375
+        ]
+      },
+      "i32": {
+        "median_ns": 182195.44375,
+        "process_medians_ns": [
+          182195.44375,
+          185731.509375,
+          179899.478125
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 611546.554688,
+        "process_medians_ns": [
+          608983.070312,
+          611546.554688,
+          613584.3125
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 607667.640625,
+        "process_medians_ns": [
+          607092.125,
+          609985.679688,
+          607667.640625
+        ]
+      }
+    },
+    "holes_1024": {
+      "f64": {
+        "median_ns": 1688175.0,
+        "process_medians_ns": [
+          1688175.0,
+          1720558.333333,
+          1676990.266667
+        ]
+      },
+      "i32": {
+        "median_ns": 1869291.666667,
+        "process_medians_ns": [
+          1869291.666667,
+          1914395.074074,
+          1854163.592593
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 18080708.333333,
+        "process_medians_ns": [
+          18080708.333333,
+          18211625.0,
+          16347916.75
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 18325277.666667,
+        "process_medians_ns": [
+          18437486.0,
+          18325277.666667,
+          17940708.333333
+        ]
+      }
+    },
+    "MVT_corpus": {
+      "f64": {
+        "median_ns": 174045333.0,
+        "process_medians_ns": [
+          173519417.0,
+          174615583.0,
+          174045333.0
+        ]
+      },
+      "i32": {
+        "median_ns": 180071000.0,
+        "process_medians_ns": [
+          180071000.0,
+          180921333.0,
+          178670667.0
+        ]
+      },
+      "cpp_once": {
+        "median_ns": 208518500.0,
+        "process_medians_ns": [
+          209076042.0,
+          208049750.0,
+          208518500.0
+        ]
+      },
+      "cpp_reuse": {
+        "median_ns": 196943292.0,
+        "process_medians_ns": [
+          198525083.0,
+          195576208.0,
+          196943292.0
+        ]
+      }
+    }
+  },
+  "path_provenance": "Source and snapshot paths use checkout-relative labels; timing samples and source hashes are unchanged."
+}

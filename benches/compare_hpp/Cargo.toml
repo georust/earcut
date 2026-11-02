@@ -1,0 +1,20 @@
+[package]
+name = "compare-earcut-hpp"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+earcut = { path = "../.." }
+
+[[bin]]
+name = "compare-earcut-hpp"
+path = "main.rs"
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+lto = "fat"
+panic = "abort"

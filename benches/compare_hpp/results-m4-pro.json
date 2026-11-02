@@ -1,0 +1,2111 @@
+{
+  "metadata": {
+    "date": "2026-11-01",
+    "machine": "Apple M4 Pro",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: aarch64-apple-darwin\nrelease: 1.98.1\nLLVM version: 22.1.8",
+    "cxx": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.3.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+    "rust_commit": "65f4d2ae1c7dde0f6f0a5286f0c19124e7694a42",
+    "cpp_commit": "2fbafada15dbe5350c606426e17111b91a964e55",
+    "rust_working_tree_modified": true,
+    "cpp_working_tree_modified": false,
+    "cpp_flags": [
+      "-std=c++17",
+      "-O3",
+      "-DNDEBUG",
+      "-ffp-contract=off"
+    ],
+    "rust_profile": "release: opt-level=3, codegen-units=1, lto=fat, panic=abort",
+    "processes": 3,
+    "samples_per_process": 11,
+    "minimum_sample_ms": 100,
+    "warmup_ms_per_mode": 500,
+    "workspace_warmup_calls_per_sample": 3,
+    "qos": "QOS_CLASS_USER_INITIATED",
+    "cases": [
+      "bad_hole",
+      "building",
+      "degenerate",
+      "dude",
+      "empty_square",
+      "water",
+      "water2",
+      "water3",
+      "water3b",
+      "water4",
+      "water_huge",
+      "water_huge2",
+      "water_huge3",
+      "holes_64",
+      "holes_256",
+      "holes_1024",
+      "MVT_corpus"
+    ],
+    "modes": [
+      "f64",
+      "cpp_once"
+    ],
+    "input_format": "ECBENCH1",
+    "apis": {
+      "f64": "public Earcut::earcut_slice, reusable instance and output",
+      "i32": "public EarcutI32::earcut_slice, reusable instance and output",
+      "cpp_once": "public mapbox::earcut<uint32_t>, fresh instance and output per call; allocation and destruction included"
+    },
+    "method": "Public APIs only. One case and mode per process; rotate case and mode order. Rust reuses an independent warmed workspace per sample and retains previous workspaces until case end to sample multiple allocation layouts. C++ calls mapbox::earcut for every polygon, including its allocations and destruction. 500ms CPU warm-up and 3 per-sample warm-up calls excluded; input preparation excluded. Median of per-process sample medians; all samples retained. No target-cpu=native/-march=native flags added.",
+    "source_sha256": {
+      "Cargo.toml": "a70e113c708706e73027999fc1647bde1e4f13c5ea349a110c0cedc33a544a8f",
+      "src/lib.rs": "dccba75d78ef6aa3e7af645b1fa12aa83de344d5840e3b4f572821101309ead4",
+      "src/int.rs": "92d48277bc927efc024c9c638ab10b75e789997fdadb9fd74998e0f9991583fc",
+      "src/utils3d.rs": "08824e71d543f7518ef416b48499caac49c8494a5eb440696ae82bf92583a029",
+      "benches/tiles-fixture.bin": "4f58c4cb13f1bb74a71cca25a21379f62882c956274c8ce10352ba132e2be1c7",
+      "benches/tiles_fixture.rs": "87b9c286919019cfbac88f04bf9b982d1f9b6de416678223f57a0b194bd2be96",
+      "benches/benchmark.rs": "42a34ad9ee53f6458b63e4ed81a882d20ab06c5a69f24f8c6da52de54c8e5492",
+      "benches/bench_tiles.rs": "fa1a6f4a293c746d9e2dce5ab5c326dd83e5476c11c99a406a7e0fd6ce375f3e",
+      "earcut.hpp/include/mapbox/earcut.hpp": "29091c0d7af22a2f985f5ebd9aedb1f1b056fe099d1d31395c393c5f1ecb8c52",
+      "benches/compare_hpp/main.rs": "84c6886153fb222b1ccb7d2310aa66a2317bfcf14cdd6e266ebe5a8a671a44d3",
+      "benches/compare_hpp/compare.cpp": "c312ce177a314d2f6f029198dfa164df3f28eb0970e29b07caea77088094ccaa",
+      "benches/compare_hpp/Cargo.toml": "a676fe4f8098b3c0864792832b00dc8914910bfb70af7aa8184f8689eba5bd6b",
+      "benches/compare_hpp/run.py": "2512e8f0cb305fb5fb5662440b908b9f248591d1339890d5af8ae538b49052bc",
+      "benches/compare_hpp/Cargo.lock": "9adbb497f0c8a5b147240ab486fb5819e1da8b932b06267c1e88cbd76063ff01",
+      "tests/fixtures/bad_diagonals.rs": "fe644ccd78da5dace16c92a1fbcda648bc5bdba69dd782b4e6328751d8c62435",
+      "tests/fixtures/bad_hole.rs": "a91943e906c2de870f41b4ef6d4cb0a9913803f78ad66bd59afc0217e5fc38ae",
+      "tests/fixtures/boxy.rs": "d58cfcd8916666a73804804c538ab19c1fd0898b701a6274f3e3b216f401b10b",
+      "tests/fixtures/building.rs": "1201a9aae94f56a04e298397f558302f5dabcd2f44057da6a999b4025e6bc1fe",
+      "tests/fixtures/collinear_diagonal.rs": "4c073b7ca5e4d8142b5f14e20926d1f130aa718b927225ecb5bc50ffa01ac92f",
+      "tests/fixtures/degenerate.rs": "fd3289b9becf58705ba590796c7a79507d6ca5ab45ce34595c5239c0816c8e97",
+      "tests/fixtures/dude.rs": "64cedaa76926b64433947dd063512833cde7be9c5f184b76436baf6676143072",
+      "tests/fixtures/earcut.rs": "e109bc8299d6c9ff3c55ce522f247e6b0d6761337a0aaaa49285de8f88971b5e",
+      "tests/fixtures/eberly_3.rs": "373da75b3ee490a0125042e798798376ad5026b54d2fc36bd9aebb00b1cb88ed",
+      "tests/fixtures/eberly_6.rs": "c1387db780d44baf12bcbd5f4001c3c1eeb2a680c9984bd43e4385cf906f7633",
+      "tests/fixtures/empty_square.rs": "43caa9abecbc5a675413bb3a780f26f0a706725ca260729771014a4eba1e89a4",
+      "tests/fixtures/filtered_bridge_jhl.rs": "6db86a291021362c9a9773ae86b25967d6b1a824de93724a9c2cb2e357e077e4",
+      "tests/fixtures/hilbert.rs": "31829df7bacadf4ea383e694bf2e708c545d87d187a3184a06a6559775dfa957",
+      "tests/fixtures/hole_touching_outer.rs": "468e206946fab99592ab651d9b4a16cd8aeb0503f292e00f728d52ad4f615aaa",
+      "tests/fixtures/hourglass.rs": "b6218b880de9be41c641fac833eed25787ab3f2c204672e14df3d0d75420bbfd",
+      "tests/fixtures/infinite_loop_jhl.rs": "8a2cc3f970779a7246c59cc8923333eefed44368b76fb3bd988fd8b6d03fa707",
+      "tests/fixtures/issue107.rs": "8c8493533c14e7ac8496489e52b84d5246133945ba1ae69a5ae59f23a5a54e7d",
+      "tests/fixtures/issue111.rs": "084d120566c6612ab88c38ff7f662d36bfc4d3ee93c28472bf28819e0d6b38af",
+      "tests/fixtures/issue119.rs": "1a3b3dfc462d52a557be43b5efea70d0b93b5488073e400c87853e764d772ba4",
+      "tests/fixtures/issue131.rs": "c4a6bf8da7780aced35e382a9321f4ab0ffdaf29db5cc8223a4d798d688a3286",
+      "tests/fixtures/issue142.rs": "e9e788cd3b4c341c63148fe7fe4587e770df4d2f16c8fd723b969cda72a3d626",
+      "tests/fixtures/issue147.rs": "76d5e651b32b1bc4e005eac0ab28175df78e4d8e4b6998943295d4d0aac9ee59",
+      "tests/fixtures/issue149.rs": "dff5ee048c8129771b49ea453e695be95cbaa1ef6f5324dcfbb7b54315d84c05",
+      "tests/fixtures/issue16.rs": "953f4c27438c6d8770cd618b182912b098228091b149a6fe0c06ecb7d18a7b85",
+      "tests/fixtures/issue17.rs": "efff001ae8f7c91c0b0073e0b27e9a1b4fd98f78b807ef61069353bf7c5586d6",
+      "tests/fixtures/issue186.rs": "eddc89355eb44017656e637ae1aff7762a15f68e5430c464fa4f90ae92a1f874",
+      "tests/fixtures/issue219.rs": "b057fa3e3b57a8efb8c9eae172df713abaa60cbe8b8febd4603775d8503f3fe4",
+      "tests/fixtures/issue221.rs": "42c3caf39557d5911d43692fb733467470bcb33668a967cd0c95ff6f95db0973",
+      "tests/fixtures/issue29.rs": "929dddb32e0e7caf7b670e52752d36dcd483a2bc0c758c47c60b9d4c4079ae44",
+      "tests/fixtures/issue34.rs": "78001ceaca8920c1541a6213d9efbb44ea5b2550401c2e76c0feb1372d7983b8",
+      "tests/fixtures/issue35.rs": "c86501a4cf687121db3750d3cd7d0b2f9ecd5c7d96e6e54a0748b142e04a094d",
+      "tests/fixtures/issue45.rs": "fed358c2cda7f4dc98e18029d774c1f05c9b4ec8a7d12fa222c0759a54d10782",
+      "tests/fixtures/issue52.rs": "9cc7f537e79a94c277ad26008f80048295516de7df072d1cb2b27e9d49770ac3",
+      "tests/fixtures/issue83.rs": "a6f80a86b9adf2b4c8fb4d39011bc406d6dc6d981685b10ae32f61ae5b74cce0",
+      "tests/fixtures/mod.rs": "abfbf8ce261a705586f995ff6084b9ea34589a4581b9ca37b4232df897b07167",
+      "tests/fixtures/outside_ring.rs": "e8e943d197b6ed93f5e05e84f3fd51aa3155933ab6928995d73410a990e6f711",
+      "tests/fixtures/rain.rs": "8830d4e991e92856dab82be3cbf2f2a5a5bd19bcd2c07edb7c24d0513924129b",
+      "tests/fixtures/self_tangent_1.rs": "1695a9ae73454dd35abffb8d7fd6d5abe8f49ef017e482fd730c8bd89476f100",
+      "tests/fixtures/self_tangent_2.rs": "1424a1924866f2b65a3bc1986d59fccf44f4d299a813a3f2d28543f1aa2d4a4e",
+      "tests/fixtures/self_tangent_3.rs": "30869f82a80996f89dbe7ea37c6feb276673fcf7d1f4ca21bd03b1f3656759be",
+      "tests/fixtures/self_tangent_4.rs": "4266b5082886e0d0a54854fd353fea196352cc513a732dfdc8c63149737b5dd4",
+      "tests/fixtures/self_touching.rs": "256db74e6f162a76fbd5df917f93f647abd8bd23c1478910182b106ced265a5b",
+      "tests/fixtures/shared_points.rs": "07454ab4ff59c315ee627f72ffd4a977bb2a25bdd739b36d2757aec2e5312c36",
+      "tests/fixtures/simplified_us_border.rs": "bc9d0076f0c71653caaa7eb4dad97ef10191d301240dfe02221878c82f5d48cb",
+      "tests/fixtures/steiner.rs": "ec7213e831d59c200741a617442a3128cf85f0190dfd5b55080fa230657790f4",
+      "tests/fixtures/touching2.rs": "6a6235c9829417ba33974b9d5030b81dd744f984b92c6dcc34035e1637e5fba7",
+      "tests/fixtures/touching3.rs": "2cd5ce81c78074f84ae7e4750775d27ce28a95927dd3d192e7ec572f51f152de",
+      "tests/fixtures/touching4.rs": "dd3673be4b3408506beaf4eda478066d0ee67c89703fd68316e115f3372db7c7",
+      "tests/fixtures/touching_holes.rs": "3207d755a2502a66baeb407f4e32359bed138d9529933dfce6d28fb3b15605ac",
+      "tests/fixtures/touching_holes2.rs": "9e067b1e46b0cb3829d1aca6c29c7eb1908aa23cce0b6c32a2dae9e408f1ee46",
+      "tests/fixtures/touching_holes3.rs": "eaaa7c14e730d10ecd1a5a24ff6419d2e9c85f8822884758769e8f32b8ad1213",
+      "tests/fixtures/touching_holes4.rs": "38e108d638b7be41a76cea0724eadfebb36077bf2a7cf705b1e9972b3cffe3c8",
+      "tests/fixtures/touching_holes5.rs": "eb06cb4ddf1c7885bd40a263c54f1692300a0a7c4fb09a5cd6690a8a53cf3dce",
+      "tests/fixtures/touching_holes6.rs": "918757085c829cb698630b8cee9789baffbadda66857c300a2c464f7e088f5af",
+      "tests/fixtures/water.rs": "33d31f77600c699affc05d12169e14e404a5b825dcfe74e2158c6b81345ff8bc",
+      "tests/fixtures/water2.rs": "93dae0d1bf5afd24efc55c77572d7de2fdb7ff6a8aeabd578aed885689dddd4b",
+      "tests/fixtures/water3.rs": "007628342ad10484368bf14378cc62e84b9a584cde96fd52bfe3bdbd80efde05",
+      "tests/fixtures/water3b.rs": "2949998f65724b59c7739ca07898a96284d7c50da3c55abc287bffa665d86ab0",
+      "tests/fixtures/water4.rs": "eb1db2f8865328d53a73e3de0deb88d8ccbc9e72946c197c6d3e38c483b11675",
+      "tests/fixtures/water_huge.rs": "c95df39442f8a6ae9318496c67cbbd824cb8556866538e28fca1876a65843c8b",
+      "tests/fixtures/water_huge2.rs": "16963307e6ac4c2a31a68b5d12adfc8fa1459783db4774f5e406a0d65f7b634a",
+      "tests/fixtures/water_huge3.rs": "287c68dbe2b45ab4760e75e405db3af6e790abd63872945bfeb77b04f176c979"
+    },
+    "snapshot_sha256": {
+      "earcut/Cargo.toml": "a70e113c708706e73027999fc1647bde1e4f13c5ea349a110c0cedc33a544a8f",
+      "earcut/src/lib.rs": "dccba75d78ef6aa3e7af645b1fa12aa83de344d5840e3b4f572821101309ead4",
+      "earcut/src/int.rs": "92d48277bc927efc024c9c638ab10b75e789997fdadb9fd74998e0f9991583fc",
+      "earcut/src/utils3d.rs": "08824e71d543f7518ef416b48499caac49c8494a5eb440696ae82bf92583a029",
+      "earcut/benches/tiles-fixture.bin": "4f58c4cb13f1bb74a71cca25a21379f62882c956274c8ce10352ba132e2be1c7",
+      "earcut/benches/tiles_fixture.rs": "87b9c286919019cfbac88f04bf9b982d1f9b6de416678223f57a0b194bd2be96",
+      "earcut/benches/benchmark.rs": "42a34ad9ee53f6458b63e4ed81a882d20ab06c5a69f24f8c6da52de54c8e5492",
+      "earcut/benches/bench_tiles.rs": "fa1a6f4a293c746d9e2dce5ab5c326dd83e5476c11c99a406a7e0fd6ce375f3e",
+      "earcut.hpp/include/mapbox/earcut.hpp": "29091c0d7af22a2f985f5ebd9aedb1f1b056fe099d1d31395c393c5f1ecb8c52",
+      "earcut/benches/compare_hpp/main.rs": "84c6886153fb222b1ccb7d2310aa66a2317bfcf14cdd6e266ebe5a8a671a44d3",
+      "earcut/benches/compare_hpp/compare.cpp": "c312ce177a314d2f6f029198dfa164df3f28eb0970e29b07caea77088094ccaa",
+      "earcut/benches/compare_hpp/Cargo.toml": "a676fe4f8098b3c0864792832b00dc8914910bfb70af7aa8184f8689eba5bd6b",
+      "earcut/benches/compare_hpp/run.py": "2512e8f0cb305fb5fb5662440b908b9f248591d1339890d5af8ae538b49052bc",
+      "earcut/benches/compare_hpp/Cargo.lock": "9adbb497f0c8a5b147240ab486fb5819e1da8b932b06267c1e88cbd76063ff01",
+      "earcut/tests/fixtures/bad_diagonals.rs": "fe644ccd78da5dace16c92a1fbcda648bc5bdba69dd782b4e6328751d8c62435",
+      "earcut/tests/fixtures/bad_hole.rs": "a91943e906c2de870f41b4ef6d4cb0a9913803f78ad66bd59afc0217e5fc38ae",
+      "earcut/tests/fixtures/boxy.rs": "d58cfcd8916666a73804804c538ab19c1fd0898b701a6274f3e3b216f401b10b",
+      "earcut/tests/fixtures/building.rs": "1201a9aae94f56a04e298397f558302f5dabcd2f44057da6a999b4025e6bc1fe",
+      "earcut/tests/fixtures/collinear_diagonal.rs": "4c073b7ca5e4d8142b5f14e20926d1f130aa718b927225ecb5bc50ffa01ac92f",
+      "earcut/tests/fixtures/degenerate.rs": "fd3289b9becf58705ba590796c7a79507d6ca5ab45ce34595c5239c0816c8e97",
+      "earcut/tests/fixtures/dude.rs": "64cedaa76926b64433947dd063512833cde7be9c5f184b76436baf6676143072",
+      "earcut/tests/fixtures/earcut.rs": "e109bc8299d6c9ff3c55ce522f247e6b0d6761337a0aaaa49285de8f88971b5e",
+      "earcut/tests/fixtures/eberly_3.rs": "373da75b3ee490a0125042e798798376ad5026b54d2fc36bd9aebb00b1cb88ed",
+      "earcut/tests/fixtures/eberly_6.rs": "c1387db780d44baf12bcbd5f4001c3c1eeb2a680c9984bd43e4385cf906f7633",
+      "earcut/tests/fixtures/empty_square.rs": "43caa9abecbc5a675413bb3a780f26f0a706725ca260729771014a4eba1e89a4",
+      "earcut/tests/fixtures/filtered_bridge_jhl.rs": "6db86a291021362c9a9773ae86b25967d6b1a824de93724a9c2cb2e357e077e4",
+      "earcut/tests/fixtures/hilbert.rs": "31829df7bacadf4ea383e694bf2e708c545d87d187a3184a06a6559775dfa957",
+      "earcut/tests/fixtures/hole_touching_outer.rs": "468e206946fab99592ab651d9b4a16cd8aeb0503f292e00f728d52ad4f615aaa",
+      "earcut/tests/fixtures/hourglass.rs": "b6218b880de9be41c641fac833eed25787ab3f2c204672e14df3d0d75420bbfd",
+      "earcut/tests/fixtures/infinite_loop_jhl.rs": "8a2cc3f970779a7246c59cc8923333eefed44368b76fb3bd988fd8b6d03fa707",
+      "earcut/tests/fixtures/issue107.rs": "8c8493533c14e7ac8496489e52b84d5246133945ba1ae69a5ae59f23a5a54e7d",
+      "earcut/tests/fixtures/issue111.rs": "084d120566c6612ab88c38ff7f662d36bfc4d3ee93c28472bf28819e0d6b38af",
+      "earcut/tests/fixtures/issue119.rs": "1a3b3dfc462d52a557be43b5efea70d0b93b5488073e400c87853e764d772ba4",
+      "earcut/tests/fixtures/issue131.rs": "c4a6bf8da7780aced35e382a9321f4ab0ffdaf29db5cc8223a4d798d688a3286",
+      "earcut/tests/fixtures/issue142.rs": "e9e788cd3b4c341c63148fe7fe4587e770df4d2f16c8fd723b969cda72a3d626",
+      "earcut/tests/fixtures/issue147.rs": "76d5e651b32b1bc4e005eac0ab28175df78e4d8e4b6998943295d4d0aac9ee59",
+      "earcut/tests/fixtures/issue149.rs": "dff5ee048c8129771b49ea453e695be95cbaa1ef6f5324dcfbb7b54315d84c05",
+      "earcut/tests/fixtures/issue16.rs": "953f4c27438c6d8770cd618b182912b098228091b149a6fe0c06ecb7d18a7b85",
+      "earcut/tests/fixtures/issue17.rs": "efff001ae8f7c91c0b0073e0b27e9a1b4fd98f78b807ef61069353bf7c5586d6",
+      "earcut/tests/fixtures/issue186.rs": "eddc89355eb44017656e637ae1aff7762a15f68e5430c464fa4f90ae92a1f874",
+      "earcut/tests/fixtures/issue219.rs": "b057fa3e3b57a8efb8c9eae172df713abaa60cbe8b8febd4603775d8503f3fe4",
+      "earcut/tests/fixtures/issue221.rs": "42c3caf39557d5911d43692fb733467470bcb33668a967cd0c95ff6f95db0973",
+      "earcut/tests/fixtures/issue29.rs": "929dddb32e0e7caf7b670e52752d36dcd483a2bc0c758c47c60b9d4c4079ae44",
+      "earcut/tests/fixtures/issue34.rs": "78001ceaca8920c1541a6213d9efbb44ea5b2550401c2e76c0feb1372d7983b8",
+      "earcut/tests/fixtures/issue35.rs": "c86501a4cf687121db3750d3cd7d0b2f9ecd5c7d96e6e54a0748b142e04a094d",
+      "earcut/tests/fixtures/issue45.rs": "fed358c2cda7f4dc98e18029d774c1f05c9b4ec8a7d12fa222c0759a54d10782",
+      "earcut/tests/fixtures/issue52.rs": "9cc7f537e79a94c277ad26008f80048295516de7df072d1cb2b27e9d49770ac3",
+      "earcut/tests/fixtures/issue83.rs": "a6f80a86b9adf2b4c8fb4d39011bc406d6dc6d981685b10ae32f61ae5b74cce0",
+      "earcut/tests/fixtures/mod.rs": "abfbf8ce261a705586f995ff6084b9ea34589a4581b9ca37b4232df897b07167",
+      "earcut/tests/fixtures/outside_ring.rs": "e8e943d197b6ed93f5e05e84f3fd51aa3155933ab6928995d73410a990e6f711",
+      "earcut/tests/fixtures/rain.rs": "8830d4e991e92856dab82be3cbf2f2a5a5bd19bcd2c07edb7c24d0513924129b",
+      "earcut/tests/fixtures/self_tangent_1.rs": "1695a9ae73454dd35abffb8d7fd6d5abe8f49ef017e482fd730c8bd89476f100",
+      "earcut/tests/fixtures/self_tangent_2.rs": "1424a1924866f2b65a3bc1986d59fccf44f4d299a813a3f2d28543f1aa2d4a4e",
+      "earcut/tests/fixtures/self_tangent_3.rs": "30869f82a80996f89dbe7ea37c6feb276673fcf7d1f4ca21bd03b1f3656759be",
+      "earcut/tests/fixtures/self_tangent_4.rs": "4266b5082886e0d0a54854fd353fea196352cc513a732dfdc8c63149737b5dd4",
+      "earcut/tests/fixtures/self_touching.rs": "256db74e6f162a76fbd5df917f93f647abd8bd23c1478910182b106ced265a5b",
+      "earcut/tests/fixtures/shared_points.rs": "07454ab4ff59c315ee627f72ffd4a977bb2a25bdd739b36d2757aec2e5312c36",
+      "earcut/tests/fixtures/simplified_us_border.rs": "bc9d0076f0c71653caaa7eb4dad97ef10191d301240dfe02221878c82f5d48cb",
+      "earcut/tests/fixtures/steiner.rs": "ec7213e831d59c200741a617442a3128cf85f0190dfd5b55080fa230657790f4",
+      "earcut/tests/fixtures/touching2.rs": "6a6235c9829417ba33974b9d5030b81dd744f984b92c6dcc34035e1637e5fba7",
+      "earcut/tests/fixtures/touching3.rs": "2cd5ce81c78074f84ae7e4750775d27ce28a95927dd3d192e7ec572f51f152de",
+      "earcut/tests/fixtures/touching4.rs": "dd3673be4b3408506beaf4eda478066d0ee67c89703fd68316e115f3372db7c7",
+      "earcut/tests/fixtures/touching_holes.rs": "3207d755a2502a66baeb407f4e32359bed138d9529933dfce6d28fb3b15605ac",
+      "earcut/tests/fixtures/touching_holes2.rs": "9e067b1e46b0cb3829d1aca6c29c7eb1908aa23cce0b6c32a2dae9e408f1ee46",
+      "earcut/tests/fixtures/touching_holes3.rs": "eaaa7c14e730d10ecd1a5a24ff6419d2e9c85f8822884758769e8f32b8ad1213",
+      "earcut/tests/fixtures/touching_holes4.rs": "38e108d638b7be41a76cea0724eadfebb36077bf2a7cf705b1e9972b3cffe3c8",
+      "earcut/tests/fixtures/touching_holes5.rs": "eb06cb4ddf1c7885bd40a263c54f1692300a0a7c4fb09a5cd6690a8a53cf3dce",
+      "earcut/tests/fixtures/touching_holes6.rs": "918757085c829cb698630b8cee9789baffbadda66857c300a2c464f7e088f5af",
+      "earcut/tests/fixtures/water.rs": "33d31f77600c699affc05d12169e14e404a5b825dcfe74e2158c6b81345ff8bc",
+      "earcut/tests/fixtures/water2.rs": "93dae0d1bf5afd24efc55c77572d7de2fdb7ff6a8aeabd578aed885689dddd4b",
+      "earcut/tests/fixtures/water3.rs": "007628342ad10484368bf14378cc62e84b9a584cde96fd52bfe3bdbd80efde05",
+      "earcut/tests/fixtures/water3b.rs": "2949998f65724b59c7739ca07898a96284d7c50da3c55abc287bffa665d86ab0",
+      "earcut/tests/fixtures/water4.rs": "eb1db2f8865328d53a73e3de0deb88d8ccbc9e72946c197c6d3e38c483b11675",
+      "earcut/tests/fixtures/water_huge.rs": "c95df39442f8a6ae9318496c67cbbd824cb8556866538e28fca1876a65843c8b",
+      "earcut/tests/fixtures/water_huge2.rs": "16963307e6ac4c2a31a68b5d12adfc8fa1459783db4774f5e406a0d65f7b634a",
+      "earcut/tests/fixtures/water_huge3.rs": "287c68dbe2b45ab4760e75e405db3af6e790abd63872945bfeb77b04f176c979"
+    },
+    "minimum_sample_ms_by_case": {
+      "bad_hole": 100,
+      "building": 100,
+      "degenerate": 100,
+      "dude": 100,
+      "empty_square": 100,
+      "water": 100,
+      "water2": 100,
+      "water3": 100,
+      "water3b": 100,
+      "water4": 100,
+      "water_huge": 300,
+      "water_huge2": 300,
+      "water_huge3": 100,
+      "holes_64": 100,
+      "holes_256": 100,
+      "holes_1024": 300,
+      "MVT_corpus": 100
+    },
+    "inputs_sha256": "ecebf285208ee28a345d1d58a709f3f4551af749023e9967b5b75501c8e88087",
+    "processes_by_case": {
+      "bad_hole": 3,
+      "building": 3,
+      "degenerate": 3,
+      "dude": 3,
+      "empty_square": 3,
+      "water": 3,
+      "water2": 3,
+      "water3": 3,
+      "water3b": 3,
+      "water4": 3,
+      "water_huge": 3,
+      "water_huge2": 5,
+      "water_huge3": 3,
+      "holes_64": 3,
+      "holes_256": 3,
+      "holes_1024": 3,
+      "MVT_corpus": 3
+    },
+    "additional_verification": {
+      "case": "water_huge2",
+      "processes": 2,
+      "samples_per_process": 11,
+      "minimum_sample_ms": 300,
+      "mode_order": [
+        [
+          "f64",
+          "cpp_once"
+        ],
+        [
+          "cpp_once",
+          "f64"
+        ]
+      ],
+      "same_binaries_as_main_run": true,
+      "cpu_checks": [
+        {
+          "round": 0,
+          "mode": "f64",
+          "wall_seconds": 3.870228583,
+          "cpu_seconds": 3.860885,
+          "cpu_wall_ratio": 0.9975857800645054,
+          "median_ns": 1206767.068273
+        },
+        {
+          "round": 0,
+          "mode": "cpp_once",
+          "wall_seconds": 4.047791833,
+          "cpu_seconds": 4.030433,
+          "cpu_wall_ratio": 0.9957115302080309,
+          "median_ns": 1754934.210526
+        },
+        {
+          "round": 1,
+          "mode": "cpp_once",
+          "wall_seconds": 4.049871792000001,
+          "cpu_seconds": 4.026731,
+          "cpu_wall_ratio": 0.9942860433148247,
+          "median_ns": 1812907.879518
+        },
+        {
+          "round": 1,
+          "mode": "f64",
+          "wall_seconds": 3.8841592500000015,
+          "cpu_seconds": 3.861427000000001,
+          "cpu_wall_ratio": 0.9941474464518929,
+          "median_ns": 1251626.733333
+        }
+      ],
+      "reproduction": "python3 benches/compare_hpp/run.py /path/to/earcut.hpp --machine \"Apple M4 Pro\" --processes 2 --samples 11 --sample-ms 300 --cases water_huge2"
+    },
+    "previous_internal_api_comparison": "results-m4-pro.internal-reuse.json",
+    "rust_source_note": "Measured after the uncommitted upstream synchronization; source and snapshot hashes identify this version.",
+    "reporting": "README compares public APIs: Earcut::earcut_slice with caller-owned reusable buffers, and mapbox::earcut with its per-call allocation and destruction included. Inputs are prebuilt. No sample exclusions or best-run selection.",
+    "reproduction": "python3 benches/compare_hpp/run.py /path/to/earcut.hpp --machine \"Apple M4 Pro\" --processes 3 --samples 11 --sample-ms 100 --case-sample-ms water_huge=300 water_huge2=300 holes_1024=300",
+    "measurement_status": "provisional: power conditions were not recorded during measurement",
+    "power_conditions": {
+      "recorded_during_measurement": false,
+      "user_report_after_measurement": "Machine currently not connected to AC power; CPU performance may be lower.",
+      "observation_after_measurement": {
+        "time_utc": "2026-11-01T13:16:05.608185+00:00",
+        "pmset_source": "AC Power",
+        "battery_status": "100%; discharging",
+        "ac_profile_lowpowermode": 0
+      },
+      "interpretation": "The later observation does not establish the power state during the benchmark or explain the timing variation."
+    },
+    "path_provenance": "Source and snapshot paths use checkout-relative labels; timing samples and source hashes are unchanged."
+  },
+  "results": {
+    "bad_hole": {
+      "f64": {
+        "median_ns": 1214.969709,
+        "process_medians_ns": [
+          1213.162558,
+          1214.969709,
+          1230.43953
+        ],
+        "process_samples_ns": [
+          [
+            1215.932701,
+            1213.889934,
+            1213.162558,
+            1216.89617,
+            1213.461289,
+            1209.944817,
+            1220.439854,
+            1202.14643,
+            1200.928859,
+            1193.328065,
+            1198.641596
+          ],
+          [
+            1215.167246,
+            1211.120062,
+            1214.969709,
+            1220.160336,
+            1216.16813,
+            1215.367722,
+            1205.147901,
+            1197.764009,
+            1200.394333,
+            1223.77479,
+            1202.778954
+          ],
+          [
+            1206.810039,
+            1220.780945,
+            1238.197157,
+            1252.077812,
+            1227.273327,
+            1230.43953,
+            1222.972088,
+            1246.941039,
+            1219.648352,
+            1241.932561,
+            1251.15665
+          ]
+        ],
+        "process_median_spread_percent": 1.4241267080054465
+      },
+      "cpp_once": {
+        "median_ns": 1597.254597,
+        "process_medians_ns": [
+          1597.254597,
+          1605.876237,
+          1556.374113
+        ],
+        "process_samples_ns": [
+          [
+            1592.37963,
+            1603.70726,
+            1592.73167,
+            1599.17269,
+            1613.681018,
+            1597.254597,
+            1582.274402,
+            1603.998397,
+            1593.520387,
+            1583.911822,
+            1598.898422
+          ],
+          [
+            1622.993477,
+            1607.235852,
+            1603.828125,
+            1594.410332,
+            1605.876237,
+            1606.366698,
+            1609.001929,
+            1601.599866,
+            1611.28249,
+            1604.594456,
+            1602.749728
+          ],
+          [
+            1597.138215,
+            1557.508248,
+            1597.456078,
+            1567.42363,
+            1548.622306,
+            1529.612203,
+            1536.620299,
+            1521.762673,
+            1529.2905,
+            1617.530554,
+            1556.374113
+          ]
+        ],
+        "process_median_spread_percent": 3.1806057159728507
+      }
+    },
+    "building": {
+      "cpp_once": {
+        "median_ns": 188.713232,
+        "process_medians_ns": [
+          187.222843,
+          191.346775,
+          188.713232
+        ],
+        "process_samples_ns": [
+          [
+            186.270324,
+            187.222843,
+            185.596521,
+            183.433722,
+            186.753406,
+            185.055896,
+            189.298232,
+            192.333528,
+            193.216317,
+            191.396363,
+            187.77248
+          ],
+          [
+            190.398393,
+            193.938016,
+            191.930474,
+            192.128937,
+            189.892138,
+            189.03577,
+            191.767203,
+            191.761852,
+            188.618104,
+            191.346775,
+            190.369247
+          ],
+          [
+            185.594045,
+            198.020361,
+            200.13486,
+            188.012937,
+            188.713232,
+            187.564064,
+            191.125799,
+            191.744434,
+            186.215994,
+            192.81743,
+            185.347338
+          ]
+        ],
+        "process_median_spread_percent": 2.2026863463450397
+      },
+      "f64": {
+        "median_ns": 95.501936,
+        "process_medians_ns": [
+          93.036586,
+          96.289055,
+          95.501936
+        ],
+        "process_samples_ns": [
+          [
+            95.130883,
+            95.873735,
+            93.286886,
+            91.660304,
+            92.887801,
+            91.659005,
+            94.320831,
+            92.662421,
+            93.036586,
+            93.474254,
+            92.700632
+          ],
+          [
+            97.720418,
+            97.083641,
+            97.438032,
+            96.07444,
+            97.97179,
+            96.842356,
+            95.371325,
+            95.360162,
+            96.289055,
+            95.164893,
+            94.743459
+          ],
+          [
+            96.585721,
+            97.145737,
+            96.953742,
+            95.364314,
+            96.311028,
+            96.339796,
+            92.799034,
+            92.782078,
+            91.485305,
+            95.501936,
+            94.166921
+          ]
+        ],
+        "process_median_spread_percent": 3.4959032138174084
+      }
+    },
+    "degenerate": {
+      "f64": {
+        "median_ns": 23.802528,
+        "process_medians_ns": [
+          23.604679,
+          23.802528,
+          24.602874
+        ],
+        "process_samples_ns": [
+          [
+            23.604679,
+            23.276679,
+            23.5065,
+            23.821457,
+            23.728176,
+            23.722653,
+            23.490068,
+            23.539661,
+            23.514853,
+            23.700733,
+            23.698325
+          ],
+          [
+            23.908393,
+            23.771465,
+            23.630113,
+            23.803497,
+            23.790245,
+            23.843675,
+            23.874714,
+            23.802528,
+            23.623384,
+            23.859442,
+            23.741668
+          ],
+          [
+            23.912784,
+            23.960106,
+            24.235325,
+            24.10629,
+            24.237069,
+            24.676197,
+            24.675633,
+            24.602874,
+            24.631872,
+            24.67229,
+            24.820581
+          ]
+        ],
+        "process_median_spread_percent": 4.22880141687163
+      },
+      "cpp_once": {
+        "median_ns": 93.895302,
+        "process_medians_ns": [
+          93.895302,
+          93.766174,
+          106.159025
+        ],
+        "process_samples_ns": [
+          [
+            93.578409,
+            93.744453,
+            93.094653,
+            93.830417,
+            92.965713,
+            94.10485,
+            93.895302,
+            96.069614,
+            98.116824,
+            94.624233,
+            97.475761
+          ],
+          [
+            94.554534,
+            93.221577,
+            93.911362,
+            93.461881,
+            94.812723,
+            93.600714,
+            93.399885,
+            93.937751,
+            93.553385,
+            94.160044,
+            93.766174
+          ],
+          [
+            101.066334,
+            100.336963,
+            98.47075,
+            101.135299,
+            107.435528,
+            106.648677,
+            107.692451,
+            106.159025,
+            103.970691,
+            106.776973,
+            112.440382
+          ]
+        ],
+        "process_median_spread_percent": 13.216760875835654
+      }
+    },
+    "dude": {
+      "cpp_once": {
+        "median_ns": 3089.610857,
+        "process_medians_ns": [
+          3050.626432,
+          3089.610857,
+          3136.635239
+        ],
+        "process_samples_ns": [
+          [
+            3087.551621,
+            3064.559069,
+            3052.834839,
+            3067.26152,
+            3048.47405,
+            3069.055086,
+            3029.686743,
+            3043.914914,
+            3039.336833,
+            3050.626432,
+            3035.790837
+          ],
+          [
+            3118.917134,
+            3076.279528,
+            3109.803429,
+            3094.838088,
+            3089.610857,
+            3114.55089,
+            3093.697258,
+            3068.517678,
+            3072.713286,
+            3067.271752,
+            3070.325301
+          ],
+          [
+            3125.867188,
+            3194.718591,
+            3152.837261,
+            3125.924469,
+            3128.505219,
+            3133.163452,
+            3156.720865,
+            3136.635239,
+            3153.589371,
+            3147.227113,
+            3090.497375
+          ]
+        ],
+        "process_median_spread_percent": 2.8193818193469333
+      },
+      "f64": {
+        "median_ns": 2816.15802,
+        "process_medians_ns": [
+          2785.308266,
+          2816.15802,
+          2833.647079
+        ],
+        "process_samples_ns": [
+          [
+            2779.503858,
+            2776.995698,
+            2785.308266,
+            2761.290857,
+            2766.409707,
+            2782.129254,
+            2840.472323,
+            2799.171707,
+            2813.593666,
+            2810.151818,
+            2815.846706
+          ],
+          [
+            2816.15802,
+            2831.011039,
+            2838.864252,
+            2825.138905,
+            2841.550653,
+            2805.409841,
+            2797.747317,
+            2814.674432,
+            2807.145562,
+            2806.224529,
+            2822.210402
+          ],
+          [
+            2831.097147,
+            2835.127236,
+            2841.306818,
+            2839.889831,
+            2832.094939,
+            2835.925675,
+            2825.831629,
+            2828.448745,
+            2822.581735,
+            2833.647079,
+            2852.855098
+          ]
+        ],
+        "process_median_spread_percent": 1.7354923901985009
+      }
+    },
+    "empty_square": {
+      "f64": {
+        "median_ns": 40.884507,
+        "process_medians_ns": [
+          40.884507,
+          40.746315,
+          40.976578
+        ],
+        "process_samples_ns": [
+          [
+            40.689553,
+            40.722512,
+            41.239432,
+            42.153451,
+            40.967182,
+            43.151675,
+            41.134467,
+            40.872099,
+            40.845521,
+            40.67303,
+            40.884507
+          ],
+          [
+            40.391291,
+            40.772914,
+            40.798056,
+            40.356142,
+            40.901443,
+            41.345056,
+            40.373987,
+            40.524553,
+            40.850575,
+            40.746315,
+            40.337071
+          ],
+          [
+            40.814886,
+            41.155861,
+            41.122818,
+            41.152273,
+            41.353646,
+            41.79061,
+            40.801507,
+            40.976578,
+            40.868943,
+            40.916421,
+            40.492757
+          ]
+        ],
+        "process_median_spread_percent": 0.5651136796051448
+      },
+      "cpp_once": {
+        "median_ns": 188.077224,
+        "process_medians_ns": [
+          184.306225,
+          188.077224,
+          188.55045
+        ],
+        "process_samples_ns": [
+          [
+            184.910086,
+            183.646925,
+            184.277421,
+            183.342362,
+            182.756685,
+            184.222609,
+            185.028662,
+            184.306225,
+            187.106273,
+            185.125985,
+            184.526106
+          ],
+          [
+            186.868268,
+            188.292093,
+            188.077224,
+            185.2679,
+            187.351915,
+            188.660132,
+            187.829629,
+            187.781197,
+            191.969633,
+            197.331065,
+            194.453734
+          ],
+          [
+            184.499552,
+            187.3939,
+            188.859994,
+            188.999492,
+            186.940162,
+            186.932842,
+            190.83472,
+            190.099177,
+            188.55045,
+            189.768841,
+            186.120297
+          ]
+        ],
+        "process_median_spread_percent": 2.3028115301043206
+      }
+    },
+    "water": {
+      "cpp_once": {
+        "median_ns": 135010.308594,
+        "process_medians_ns": [
+          135010.308594,
+          134827.25651,
+          135660.970052
+        ],
+        "process_samples_ns": [
+          [
+            134363.11849,
+            135010.308594,
+            135511.501302,
+            136440.647135,
+            135276.747396,
+            134425.401042,
+            137462.619792,
+            133657.11849,
+            134575.683594,
+            133733.290365,
+            135315.049479
+          ],
+          [
+            134827.25651,
+            134480.739583,
+            134564.941406,
+            135078.829427,
+            134036.621094,
+            136378.201823,
+            133808.75651,
+            134867.403646,
+            134689.615885,
+            138608.453125,
+            137808.485677
+          ],
+          [
+            134447.591146,
+            135660.970052,
+            135384.548177,
+            134425.510417,
+            142774.196615,
+            134196.614583,
+            136294.053385,
+            136661.621094,
+            136271.864583,
+            135352.158854,
+            139166.882812
+          ]
+        ],
+        "process_median_spread_percent": 0.6183568245625048
+      },
+      "f64": {
+        "median_ns": 137645.888021,
+        "process_medians_ns": [
+          137669.64974,
+          137645.888021,
+          135506.726562
+        ],
+        "process_samples_ns": [
+          [
+            139618.760417,
+            137109.429688,
+            133999.186198,
+            136590.657552,
+            135012.424479,
+            140601.39974,
+            138794.541667,
+            137669.64974,
+            139358.615885,
+            138714.084635,
+            136121.09375
+          ],
+          [
+            134627.0625,
+            136757.161458,
+            138411.891927,
+            137728.841146,
+            138747.286458,
+            139041.123698,
+            181797.598958,
+            137645.888021,
+            133342.067708,
+            134550.563802,
+            134229.166667
+          ],
+          [
+            136290.960938,
+            135843.208333,
+            135538.736979,
+            135240.071615,
+            135661.621094,
+            135193.25,
+            134597.167969,
+            134661.783854,
+            135428.49349,
+            135506.726562,
+            137754.828125
+          ]
+        ],
+        "process_median_spread_percent": 1.5961740297891103
+      }
+    },
+    "water2": {
+      "f64": {
+        "median_ns": 102178.791992,
+        "process_medians_ns": [
+          102178.791992,
+          103850.952148,
+          102034.138672
+        ],
+        "process_samples_ns": [
+          [
+            102178.791992,
+            100974.162109,
+            109316.580208,
+            106051.692708,
+            103466.552734,
+            101688.069336,
+            102952.595703,
+            101932.210938,
+            102601.358398,
+            101758.707031,
+            101584.228516
+          ],
+          [
+            101303.304688,
+            102677.327148,
+            103923.950195,
+            103850.952148,
+            104769.704167,
+            104371.875,
+            106277.691667,
+            102066.081055,
+            102171.386719,
+            105134.2875,
+            102993.977539
+          ],
+          [
+            102034.138672,
+            101964.761719,
+            102034.953125,
+            102583.007812,
+            102299.275391,
+            101898.478516,
+            101821.533203,
+            101890.583984,
+            102082.193359,
+            101921.99707,
+            102070.271484
+          ]
+        ],
+        "process_median_spread_percent": 1.780593730339941
+      },
+      "cpp_once": {
+        "median_ns": 108161.544792,
+        "process_medians_ns": [
+          106678.90625,
+          108161.544792,
+          108655.425
+        ],
+        "process_samples_ns": [
+          [
+            106943.271875,
+            107063.976042,
+            106623.870833,
+            106700.130208,
+            106281.814583,
+            106678.90625,
+            106724.348958,
+            106561.501042,
+            106736.588542,
+            106531.510417,
+            106315.321875
+          ],
+          [
+            108161.544792,
+            108416.666667,
+            108625.216667,
+            108025.867708,
+            108030.729167,
+            108441.666667,
+            107744.401042,
+            108015.929167,
+            107555.945833,
+            109005.382292,
+            108729.469792
+          ],
+          [
+            108655.425,
+            108804.513542,
+            109175.172917,
+            108548.351042,
+            108146.875,
+            109154.383333,
+            108332.682292,
+            109011.285417,
+            108757.682292,
+            108272.916667,
+            108103.125
+          ]
+        ],
+        "process_median_spread_percent": 1.8527737295769287
+      }
+    },
+    "water3": {
+      "cpp_once": {
+        "median_ns": 8725.455729,
+        "process_medians_ns": [
+          8657.767869,
+          8743.198586,
+          8725.455729
+        ],
+        "process_samples_ns": [
+          [
+            8601.905907,
+            8657.767869,
+            8601.004464,
+            8545.430669,
+            8727.535503,
+            8682.483333,
+            8738.132071,
+            8595.102163,
+            8742.81669,
+            8593.971841,
+            8714.753299
+          ],
+          [
+            8787.361745,
+            8670.590901,
+            8811.962342,
+            8915.468217,
+            8853.747352,
+            8631.900326,
+            8673.867662,
+            8651.325794,
+            8743.198586,
+            8747.96683,
+            8742.969536
+          ],
+          [
+            8725.455729,
+            8807.485516,
+            8720.142448,
+            8752.57507,
+            8720.728472,
+            8645.085204,
+            8740.750873,
+            8738.732193,
+            8753.782559,
+            8677.691212,
+            8685.152604
+          ]
+        ],
+        "process_median_spread_percent": 0.9867522240448956
+      },
+      "f64": {
+        "median_ns": 7289.989099,
+        "process_medians_ns": [
+          7289.989099,
+          7255.093822,
+          7304.191589
+        ],
+        "process_samples_ns": [
+          [
+            7308.964953,
+            7289.989099,
+            7259.575738,
+            7327.997225,
+            7282.406759,
+            7245.12623,
+            7363.975059,
+            7317.355432,
+            7261.019459,
+            7299.200581,
+            7191.056838
+          ],
+          [
+            7268.640988,
+            7254.816551,
+            7247.838903,
+            7243.148944,
+            7249.059606,
+            7254.843605,
+            7275.187718,
+            7317.985178,
+            7261.571036,
+            7267.696221,
+            7255.093822
+          ],
+          [
+            7313.470429,
+            7282.261337,
+            7295.678924,
+            7290.567442,
+            7283.95109,
+            7304.191589,
+            7326.625219,
+            7297.586628,
+            7313.18144,
+            7309.266063,
+            7387.354437
+          ]
+        ],
+        "process_median_spread_percent": 0.6767351078371897
+      }
+    },
+    "water3b": {
+      "f64": {
+        "median_ns": 542.858621,
+        "process_medians_ns": [
+          545.598606,
+          542.858621,
+          539.676898
+        ],
+        "process_samples_ns": [
+          [
+            556.201346,
+            544.140946,
+            546.267198,
+            543.514266,
+            548.761148,
+            552.723089,
+            537.565123,
+            545.598606,
+            547.331524,
+            545.593379,
+            539.404761
+          ],
+          [
+            546.557565,
+            544.929824,
+            534.975934,
+            542.858621,
+            537.674417,
+            542.771785,
+            543.148201,
+            538.478765,
+            537.258428,
+            543.089998,
+            546.033783
+          ],
+          [
+            537.216349,
+            545.311459,
+            540.802065,
+            539.676898,
+            539.551682,
+            537.350719,
+            541.502436,
+            544.756677,
+            541.563123,
+            539.422964,
+            537.448778
+          ]
+        ],
+        "process_median_spread_percent": 1.0972691293522852
+      },
+      "cpp_once": {
+        "median_ns": 843.289741,
+        "process_medians_ns": [
+          838.888679,
+          843.289741,
+          868.878248
+        ],
+        "process_samples_ns": [
+          [
+            838.888679,
+            842.941992,
+            836.344009,
+            824.616252,
+            819.698324,
+            839.204946,
+            835.683005,
+            861.788236,
+            841.444181,
+            839.139593,
+            829.239887
+          ],
+          [
+            843.289741,
+            837.100797,
+            844.945456,
+            841.358181,
+            845.162292,
+            840.721734,
+            840.136022,
+            841.959633,
+            849.332677,
+            844.70826,
+            847.656953
+          ],
+          [
+            856.11231,
+            869.373453,
+            903.537455,
+            876.457261,
+            871.497159,
+            868.878248,
+            871.894756,
+            856.502568,
+            865.123046,
+            863.501735,
+            851.114285
+          ]
+        ],
+        "process_median_spread_percent": 3.5749164043731296
+      }
+    },
+    "water4": {
+      "cpp_once": {
+        "median_ns": 34428.144701,
+        "process_medians_ns": [
+          35416.478472,
+          34428.144701,
+          34410.948709
+        ],
+        "process_samples_ns": [
+          [
+            37121.71439,
+            35416.478472,
+            35280.410764,
+            35095.905556,
+            36746.805233,
+            36239.96804,
+            39084.196094,
+            35041.464236,
+            35325.969444,
+            35099.855556,
+            35516.319444
+          ],
+          [
+            34391.021399,
+            34497.466712,
+            34428.144701,
+            34455.630095,
+            34511.492188,
+            34370.18784,
+            34140.695992,
+            34339.829484,
+            34460.9375,
+            34383.024796,
+            34570.581522
+          ],
+          [
+            44297.543837,
+            34430.833899,
+            34267.790421,
+            34169.42663,
+            34410.948709,
+            34328.337296,
+            34403.206861,
+            34465.806046,
+            34502.887228,
+            34407.325747,
+            34628.014606
+          ]
+        ],
+        "process_median_spread_percent": 2.92212159421521
+      },
+      "f64": {
+        "median_ns": 36940.225291,
+        "process_medians_ns": [
+          37218.424479,
+          36909.126817,
+          36940.225291
+        ],
+        "process_samples_ns": [
+          [
+            36980.726017,
+            37815.15067,
+            40684.294872,
+            39546.630859,
+            40894.080529,
+            38840.907774,
+            37199.582122,
+            37218.424479,
+            36646.242006,
+            36971.172602,
+            36810.486555
+          ],
+          [
+            37639.307664,
+            37022.453488,
+            36789.183503,
+            36909.126817,
+            37219.524926,
+            37014.202035,
+            36810.759084,
+            36748.773619,
+            36762.611919,
+            37030.507994,
+            36884.84157
+          ],
+          [
+            37269.903274,
+            36940.225291,
+            36940.452398,
+            37082.40952,
+            37111.328125,
+            37064.786337,
+            36836.830669,
+            36903.237282,
+            36856.164971,
+            36918.650073,
+            36762.869186
+          ]
+        ],
+        "process_median_spread_percent": 0.8379977763590674
+      }
+    },
+    "water_huge": {
+      "f64": {
+        "median_ns": 593795.328125,
+        "process_medians_ns": [
+          644170.246094,
+          580465.060764,
+          593795.328125
+        ],
+        "process_samples_ns": [
+          [
+            688053.571429,
+            608878.173828,
+            655280.517578,
+            644170.246094,
+            618578.044922,
+            600309.814453,
+            583697.699653,
+            658855.957031,
+            706704.799107,
+            658835.205078,
+            613767.253906
+          ],
+          [
+            580465.060764,
+            591951.416016,
+            579020.109375,
+            569484.302083,
+            566619.430556,
+            591654.785156,
+            564971.137153,
+            602512.044922,
+            585302.227431,
+            567911.387153,
+            581676.142361
+          ],
+          [
+            593795.328125,
+            589122.234375,
+            594491.210938,
+            597376.953125,
+            586875.289931,
+            601821.371094,
+            589742.675781,
+            594077.392578,
+            589647.640625,
+            579930.338542,
+            618364.990234
+          ]
+        ],
+        "process_median_spread_percent": 10.974852689006287
+      },
+      "cpp_once": {
+        "median_ns": 834465.276042,
+        "process_medians_ns": [
+          855146.052083,
+          824649.848958,
+          834465.276042
+        ],
+        "process_samples_ns": [
+          [
+            916656.684896,
+            868358.381503,
+            873225.479167,
+            811817.166667,
+            811847.981771,
+            854559.135417,
+            845139.213542,
+            869805.773438,
+            871034.940104,
+            855146.052083,
+            841649.630208
+          ],
+          [
+            867287.109375,
+            830175.020833,
+            824649.848958,
+            806617.078125,
+            829507.921875,
+            841502.0625,
+            827875.867188,
+            819405.705729,
+            824219.184896,
+            820582.463542,
+            823845.486979
+          ],
+          [
+            834962.455729,
+            841619.865546,
+            856677.950521,
+            834465.276042,
+            820670.247396,
+            829268.338542,
+            819654.838542,
+            847564.34375,
+            861463.325521,
+            810772.354167,
+            820292.427083
+          ]
+        ],
+        "process_median_spread_percent": 3.6980790287579612
+      }
+    },
+    "water_huge2": {
+      "cpp_once": {
+        "median_ns": 1803514.473054,
+        "process_medians_ns": [
+          1807294.174699,
+          1803514.473054,
+          1798075.850299,
+          1754934.210526,
+          1812907.879518
+        ],
+        "process_samples_ns": [
+          [
+            1804484.778443,
+            1807294.174699,
+            1829707.823171,
+            2211495.713235,
+            1906948.841772,
+            2106377.916084,
+            1861728.135802,
+            1786087.797619,
+            1756719.298246,
+            1787978.422619,
+            1766115.688235
+          ],
+          [
+            1796097.470238,
+            1787500.994048,
+            1809940.259036,
+            1794854.416667,
+            1814103.915663,
+            1800076.101796,
+            1790500.744048,
+            1811908.385542,
+            1803587.57485,
+            1803514.473054,
+            1826314.648485
+          ],
+          [
+            1777376.727811,
+            1788353.672619,
+            1798075.850299,
+            1785812.255952,
+            1796414.419162,
+            1775274.408284,
+            1832063.768293,
+            1920653.929936,
+            1889789.308176,
+            1878067.96875,
+            1875489.0625
+          ],
+          [
+            1752140.023256,
+            1743552.023121,
+            1737177.50289,
+            1759534.111111,
+            1741353.323699,
+            1754934.210526,
+            1737107.65896,
+            1760008.280702,
+            1802289.167665,
+            1838713.664634,
+            1800985.778443
+          ],
+          [
+            1775163.952663,
+            1812829.819277,
+            1805253.742515,
+            1812907.879518,
+            1819064.89697,
+            1820091.666667,
+            1809376.259036,
+            1813722.138554,
+            1806920.658683,
+            1826533.084848,
+            1826659.593939
+          ]
+        ],
+        "process_median_spread_percent": 3.3034667991698408
+      },
+      "f64": {
+        "median_ns": 1251626.733333,
+        "process_medians_ns": [
+          1333446.349558,
+          1213091.733871,
+          1452833.333333,
+          1206767.068273,
+          1251626.733333
+        ],
+        "process_samples_ns": [
+          [
+            1252665.279167,
+            1382419.53211,
+            1344128.53125,
+            1333446.349558,
+            1354261.45045,
+            1323515.23348,
+            1318574.013158,
+            1373757.803653,
+            1337035.737778,
+            1273280.54661,
+            1319461.258772
+          ],
+          [
+            1293323.456897,
+            1220214.093496,
+            1190406.948617,
+            1213719.758065,
+            1199279.215139,
+            1202159.664,
+            1197986.219124,
+            1220083.166667,
+            1267920.004219,
+            1213091.733871,
+            1196769.091633
+          ],
+          [
+            1456355.985437,
+            1495060.741294,
+            1485153.465347,
+            1645131.830601,
+            1452833.333333,
+            1668369.444444,
+            1312133.187773,
+            1310779.10917,
+            1310313.864629,
+            1275015.182203,
+            1221227.642276
+          ],
+          [
+            1208256.690763,
+            1223533.536585,
+            1234516.905738,
+            1199379.98008,
+            1206767.068273,
+            1206933.064257,
+            1193084.821429,
+            1187823.616601,
+            1205487.618474,
+            1226874.15102,
+            1202792.832
+          ],
+          [
+            1250383.508333,
+            1253259.204167,
+            1252111.458333,
+            1244277.202479,
+            1260653.537815,
+            1264056.369748,
+            1236375.687243,
+            1228412.922449,
+            1251626.733333,
+            1259418.410042,
+            1224726.020408
+          ]
+        ],
+        "process_median_spread_percent": 20.390535301244572
+      }
+    },
+    "water_huge3": {
+      "f64": {
+        "median_ns": 10809608.3,
+        "process_medians_ns": [
+          11282342.555556,
+          10809608.3,
+          10793033.3
+        ],
+        "process_samples_ns": [
+          [
+            11148125.0,
+            11434546.333333,
+            15377256.0,
+            11282342.555556,
+            11195541.666667,
+            11381842.666667,
+            11528231.555556,
+            10943875.0,
+            10723508.3,
+            11644027.777778,
+            11072616.7
+          ],
+          [
+            11036904.2,
+            10788679.2,
+            10815329.2,
+            10832262.5,
+            10802295.8,
+            10809608.3,
+            10739441.7,
+            10827933.4,
+            10788991.7,
+            10714375.0,
+            11034925.0
+          ],
+          [
+            10806645.8,
+            10770433.4,
+            10851545.8,
+            10793033.3,
+            10793841.7,
+            10817866.7,
+            10820825.0,
+            10783520.8,
+            10786595.8,
+            10765679.1,
+            10772170.9
+          ]
+        ],
+        "process_median_spread_percent": 4.5335656988661155
+      },
+      "cpp_once": {
+        "median_ns": 18137625.0,
+        "process_medians_ns": [
+          19472868.0,
+          17957687.5,
+          18137625.0
+        ],
+        "process_samples_ns": [
+          [
+            20209450.0,
+            19310201.333333,
+            19534069.5,
+            20357741.8,
+            19062527.833333,
+            18759618.0,
+            19472868.0,
+            19587263.833333,
+            18393291.666667,
+            19314430.5,
+            19971729.166667
+          ],
+          [
+            18174250.0,
+            18069777.666667,
+            17980895.833333,
+            18050659.833333,
+            17889958.333333,
+            17957687.5,
+            17940673.5,
+            18098159.666667,
+            17938638.833333,
+            17887194.5,
+            17908805.666667
+          ],
+          [
+            18160944.5,
+            18076951.5,
+            18137625.0,
+            18065486.166667,
+            18596632.0,
+            18281388.833333,
+            18027625.0,
+            18187208.333333,
+            17819576.5,
+            18504902.666667,
+            18034993.0
+          ]
+        ],
+        "process_median_spread_percent": 8.437503436898552
+      }
+    },
+    "holes_64": {
+      "cpp_once": {
+        "median_ns": 50511.529738,
+        "process_medians_ns": [
+          53934.963362,
+          50002.400879,
+          50511.529738
+        ],
+        "process_samples_ns": [
+          [
+            56499.046317,
+            54530.935884,
+            52709.00625,
+            53934.963362,
+            53283.007812,
+            54054.036458,
+            61846.855168,
+            52558.094792,
+            52819.184375,
+            54843.974677,
+            51802.146673
+          ],
+          [
+            49864.481934,
+            50183.674805,
+            50003.336914,
+            50039.672852,
+            50053.812988,
+            50002.400879,
+            49866.29248,
+            49899.475098,
+            49983.744141,
+            49813.25293,
+            50074.035645
+          ],
+          [
+            50265.136719,
+            52057.984375,
+            51239.793347,
+            50511.529738,
+            50799.143145,
+            50948.483871,
+            49551.900391,
+            51985.236391,
+            49836.05957,
+            49656.534668,
+            49504.618164
+          ]
+        ],
+        "process_median_spread_percent": 7.864747319866394
+      },
+      "f64": {
+        "median_ns": 22440.290179,
+        "process_medians_ns": [
+          23536.147388,
+          22239.106514,
+          22440.290179
+        ],
+        "process_samples_ns": [
+          [
+            24123.577644,
+            23689.255919,
+            24012.616477,
+            23471.21805,
+            23065.515855,
+            22955.417799,
+            23066.750919,
+            23536.147388,
+            23619.159981,
+            23546.972015,
+            23510.222481
+          ],
+          [
+            22216.338248,
+            22157.616197,
+            22253.860255,
+            22396.995982,
+            22338.18817,
+            22274.721391,
+            22153.398327,
+            22239.106514,
+            22232.403609,
+            22246.368838,
+            22215.247139
+          ],
+          [
+            22921.346467,
+            23338.784515,
+            22440.290179,
+            22857.931386,
+            22990.110064,
+            22306.448063,
+            22197.916593,
+            22210.598371,
+            22185.226012,
+            22237.639525,
+            22673.47894
+          ]
+        ],
+        "process_median_spread_percent": 5.832252627521184
+      }
+    },
+    "holes_256": {
+      "f64": {
+        "median_ns": 174189.815972,
+        "process_medians_ns": [
+          182163.482639,
+          172700.195312,
+          174189.815972
+        ],
+        "process_samples_ns": [
+          [
+            186296.006944,
+            181545.138889,
+            184138.600694,
+            180486.90625,
+            179752.532986,
+            182163.482639,
+            180944.517361,
+            182755.352431,
+            184160.953125,
+            183879.847222,
+            178373.986111
+          ],
+          [
+            172700.195312,
+            174475.767361,
+            172284.245312,
+            172050.0,
+            173431.38125,
+            173846.137153,
+            172857.421875,
+            172647.721875,
+            172726.235937,
+            172598.371875,
+            172214.0625
+          ],
+          [
+            171904.817188,
+            177981.336806,
+            175411.3125,
+            173008.528125,
+            172042.707813,
+            172544.9875,
+            177449.869792,
+            172942.96875,
+            174189.815972,
+            175556.060764,
+            176636.284722
+          ]
+        ],
+        "process_median_spread_percent": 5.479604299175023
+      },
+      "cpp_once": {
+        "median_ns": 615862.197917,
+        "process_medians_ns": [
+          648128.90625,
+          615862.197917,
+          614317.494792
+        ],
+        "process_samples_ns": [
+          [
+            668612.630208,
+            659896.703125,
+            666895.182292,
+            656273.005208,
+            658836.369792,
+            646035.807292,
+            648128.90625,
+            640243.489583,
+            638773.651042,
+            645118.708333,
+            642679.46875
+          ],
+          [
+            619117.838542,
+            614241.755208,
+            613310.114583,
+            613092.447917,
+            615862.197917,
+            616806.859375,
+            612169.270833,
+            616632.598958,
+            620986.328125,
+            618001.088542,
+            612315.104167
+          ],
+          [
+            614317.494792,
+            614793.1875,
+            615061.416667,
+            613685.328125,
+            612772.786458,
+            621983.505208,
+            610534.505208,
+            612718.75,
+            612733.505208,
+            822481.125,
+            641078.125
+          ]
+        ],
+        "process_median_spread_percent": 5.5038985125188455
+      }
+    },
+    "holes_1024": {
+      "cpp_once": {
+        "median_ns": 17180224.555556,
+        "process_medians_ns": [
+          16887263.888889,
+          17180224.555556,
+          18523855.352941
+        ],
+        "process_samples_ns": [
+          [
+            17586324.055556,
+            17473583.333333,
+            16941053.222222,
+            16859949.111111,
+            16828094.888889,
+            16927076.388889,
+            16887263.888889,
+            16928481.5,
+            16797252.333333,
+            16768729.166667,
+            16764807.888889
+          ],
+          [
+            17442456.0,
+            17951615.176471,
+            17288266.222222,
+            17802291.705882,
+            17701279.411765,
+            17070247.722222,
+            16963789.333333,
+            17021326.388889,
+            17180224.555556,
+            17140986.111111,
+            16918277.777778
+          ],
+          [
+            18920182.25,
+            18768403.625,
+            18803447.875,
+            18678205.882353,
+            18523855.352941,
+            18502813.705882,
+            18465392.176471,
+            18379345.588235,
+            18405715.647059,
+            18208593.117647,
+            18562443.647059
+          ]
+        ],
+        "process_median_spread_percent": 9.691276661631365
+      },
+      "f64": {
+        "median_ns": 1694924.672316,
+        "process_medians_ns": [
+          1682931.329609,
+          1694924.672316,
+          1701413.610169
+        ],
+        "process_samples_ns": [
+          [
+            1682946.692737,
+            1675565.738889,
+            1682931.329609,
+            1702903.717514,
+            1720995.48,
+            1680060.52514,
+            1680454.374302,
+            1680655.955307,
+            1691628.280899,
+            1683755.586592,
+            1680612.664804
+          ],
+          [
+            1695494.581921,
+            1698733.988701,
+            1699576.977401,
+            1699027.779661,
+            1705505.920455,
+            1687194.050562,
+            1692723.314607,
+            1694924.672316,
+            1686197.331461,
+            1693770.595506,
+            1692249.533708
+          ],
+          [
+            1679520.949721,
+            1719354.52,
+            1741527.942197,
+            1713949.102273,
+            1698249.762712,
+            1707964.960227,
+            1689917.370787,
+            1698362.288136,
+            1700592.988701,
+            1708998.340909,
+            1701413.610169
+          ]
+        ],
+        "process_median_spread_percent": 1.0982195312921217
+      }
+    },
+    "MVT_corpus": {
+      "f64": {
+        "median_ns": 174779834.0,
+        "process_medians_ns": [
+          174643584.0,
+          175518041.0,
+          174779834.0
+        ],
+        "process_samples_ns": [
+          [
+            173700375.0,
+            173452416.0,
+            175783292.0,
+            180488208.0,
+            173666750.0,
+            173199792.0,
+            172932084.0,
+            174686250.0,
+            175401083.0,
+            174643584.0,
+            175968250.0
+          ],
+          [
+            174599500.0,
+            174561000.0,
+            175895083.0,
+            175518041.0,
+            175343292.0,
+            175956958.0,
+            178999792.0,
+            178879250.0,
+            175991625.0,
+            174624625.0,
+            175453083.0
+          ],
+          [
+            174779834.0,
+            175175583.0,
+            174534667.0,
+            175649959.0,
+            175567500.0,
+            173608417.0,
+            175168208.0,
+            174153750.0,
+            174064667.0,
+            174796333.0,
+            174669292.0
+          ]
+        ],
+        "process_median_spread_percent": 0.5007094907076626
+      },
+      "cpp_once": {
+        "median_ns": 211719584.0,
+        "process_medians_ns": [
+          212245792.0,
+          210772375.0,
+          211719584.0
+        ],
+        "process_samples_ns": [
+          [
+            211091834.0,
+            208738583.0,
+            209020042.0,
+            208663042.0,
+            208450084.0,
+            214622125.0,
+            212245792.0,
+            217054500.0,
+            216727250.0,
+            213022709.0,
+            214334000.0
+          ],
+          [
+            210109167.0,
+            210798375.0,
+            210631750.0,
+            210310458.0,
+            211253458.0,
+            208868542.0,
+            210772375.0,
+            211009625.0,
+            211772125.0,
+            210120750.0,
+            211380708.0
+          ],
+          [
+            210968625.0,
+            210705041.0,
+            212737875.0,
+            210688000.0,
+            211719584.0,
+            211595292.0,
+            213986917.0,
+            237304375.0,
+            217204375.0,
+            209250917.0,
+            217321083.0
+          ]
+        ],
+        "process_median_spread_percent": 0.6990560314177774
+      }
+    }
+  }
+}

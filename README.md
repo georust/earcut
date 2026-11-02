@@ -6,7 +6,7 @@
 
 A Rust port of the [mapbox/earcut](https://github.com/mapbox/earcut) polygon triangulation library.
 
-- Tracks the triangulation behavior and optional Delaunay refinement from the latest earcut 3.2.3.
+- Tracks the triangulation behavior and optional Delaunay refinement from the latest earcut 3.2.4.
 - Designed to avoid unnecessary memory allocations. Internal buffers and the output index vector can be reused across multiple triangulations.
 - Also provides `earcut::int::EarcutI32` for integer coordinates with exact integer predicates, but it can be slower than the float-based `Earcut` on modern CPUs.
 - An additional helper, `utils3d::project3d_to_2d`, projects coplanar 3D polygons onto a 2D plane for use with earcut.
@@ -18,24 +18,26 @@ A Rust port of the [mapbox/earcut](https://github.com/mapbox/earcut) polygon tri
 
 ## Benchmarks
 
-Time per iteration (smaller is better). Measured on a MacBook Pro (M1 Pro).
+Time per iteration (smaller is better). Measured on a MacBook Pro (M4 Pro).
 
-| Polygon      | earcut.hpp (C++) | earcut (Rust) |
-|--------------|-----------------:|--------------:|
-| bad_hole     |        2.27 µs/i |    2.337 µs/i |
-| building     |         294 ns/i |    167.7 ns/i |
-| degenerate   |         139 ns/i |    42.63 ns/i |
-| dude         |        4.46 µs/i |    4.275 µs/i |
-| empty_square |         271 ns/i |    83.22 ns/i |
-| water        |         284 µs/i |    236.2 µs/i |
-| water2       |         192 µs/i |    155.7 µs/i |
-| water3       |        12.8 µs/i |    13.78 µs/i |
-| water3b      |        1.26 µs/i |    1.060 µs/i |
-| water4       |        53.6 µs/i |    58.69 µs/i |
-| water_huge   |       1.399 ms/i |    1.298 ms/i |
-| water_huge2  |       2.694 ms/i |    2.511 ms/i |
-| water_huge3  |       21.84 ms/i |    19.50 ms/i |
-| MVT corpus   |         250 ms/i |      248 ms/i |
+| Polygon | earcut.hpp (C++) | earcut (Rust f64) |
+|---------|-----------------:|------------------:|
+| bad_hole | 1.60 µs | 1.21 µs |
+| building | 189 ns | 95.5 ns |
+| degenerate | 93.9 ns | 23.8 ns |
+| dude | 3.09 µs | 2.82 µs |
+| empty_square | 188 ns | 40.9 ns |
+| water | 135 µs | 138 µs |
+| water2 | 108 µs | 102 µs |
+| water3 | 8.73 µs | 7.29 µs |
+| water3b | 843 ns | 543 ns |
+| water4 | 34.4 µs | 36.9 µs |
+| water_huge | 834 µs | 594 µs |
+| water_huge2 | 1.80 ms | 1.25 ms |
+| water_huge3 | 18.1 ms | 10.8 ms |
+| MVT corpus | 212 ms | 175 ms |
+
+Public APIs: Rust reuses buffers; C++ allocates per call.
 
 ## Demo
 

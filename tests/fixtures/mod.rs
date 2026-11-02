@@ -29,6 +29,8 @@ mod issue149;
 mod issue16;
 mod issue17;
 mod issue186;
+mod issue219;
+mod issue221;
 mod issue29;
 mod issue34;
 mod issue35;
@@ -89,6 +91,8 @@ pub use issue149::ISSUE149;
 pub use issue16::ISSUE16;
 pub use issue17::ISSUE17;
 pub use issue186::ISSUE186;
+pub use issue219::ISSUE219;
+pub use issue221::ISSUE221;
 pub use issue29::ISSUE29;
 pub use issue34::ISSUE34;
 pub use issue35::ISSUE35;
@@ -151,6 +155,8 @@ pub static FIXTURES: &[(&str, &[&[[f64; 2]]])] = &[
     ("issue16", ISSUE16),
     ("issue17", ISSUE17),
     ("issue186", ISSUE186),
+    ("issue219", ISSUE219),
+    ("issue221", ISSUE221),
     ("issue29", ISSUE29),
     ("issue34", ISSUE34),
     ("issue35", ISSUE35),
